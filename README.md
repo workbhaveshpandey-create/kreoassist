@@ -72,7 +72,8 @@
 ---
 
 ## 📸 Screenshots
-*(Add your screenshots here)*
+<img width="540" height="1200" alt="image" src="https://github.com/user-attachments/assets/608b43b6-ff97-47f6-813a-fd83e1fe6832" />
+
 
 ---
 
