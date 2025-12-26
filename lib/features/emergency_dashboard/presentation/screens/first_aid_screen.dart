@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../ai_assistant/data/hybrid_ai_service.dart';
 
 class FirstAidScreen extends StatefulWidget {
@@ -97,7 +98,7 @@ class _FirstAidScreenState extends State<FirstAidScreen> {
 
   Future<void> _initService() async {
     // Set API key and initialize hybrid service
-    _aiService.setGoogleApiKey('AIzaSyCF029lIHzoX3uOQwL_YTSpr09IVkv5T5Q');
+    // _aiService.setGoogleApiKey('...'); // Not needed for Pollinations AI
     await _aiService.initialize();
   }
 

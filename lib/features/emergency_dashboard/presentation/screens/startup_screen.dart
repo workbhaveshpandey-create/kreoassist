@@ -123,42 +123,13 @@ class _StartupScreenState extends State<StartupScreen> {
     final bluetoothStatus = await Permission.bluetooth.serviceStatus;
     final bool btEnabled = bluetoothStatus == ServiceStatus.enabled;
 
-    // Show dialog to enable radios if needed
+    // Show non-blocking prompt if radios are off
     if (!btEnabled && mounted) {
-      await showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => AlertDialog(
-          backgroundColor: const Color(0xFF121212),
-          title: const Row(
-            children: [
-              Icon(Icons.wifi_tethering, color: Color(0xFFFF6B35)),
-              SizedBox(width: 12),
-              Text("Enable Connectivity",
-                  style: TextStyle(color: Colors.white)),
-            ],
-          ),
-          content: const Text(
-            "KreoAssist needs Bluetooth and WiFi enabled for the Mesh Network to work in disaster conditions.\n\nPlease enable them in Settings.",
-            style: TextStyle(color: Colors.white70),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text("Later", style: TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.pop(ctx);
-                openAppSettings(); // Opens device settings
-              },
-              icon: const Icon(Icons.settings),
-              label: const Text("Open Settings"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF6B35),
-              ),
-            ),
-          ],
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("For Mesh Network, please enable Bluetooth & WiFi"),
+          backgroundColor: Color(0xFFFF6B35),
+          duration: Duration(seconds: 4),
         ),
       );
     }
@@ -205,7 +176,7 @@ class _StartupScreenState extends State<StartupScreen> {
       },
       onError: (e) {
         setState(() {
-          _status = "Error downloading model. Retry?";
+          _status = "Download failed. Please close and reopen app to retry.";
           _downloading = false;
         });
       },

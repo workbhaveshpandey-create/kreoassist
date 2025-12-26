@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
+
 import 'features/emergency_dashboard/presentation/screens/startup_screen.dart';
 
 void main() async {
