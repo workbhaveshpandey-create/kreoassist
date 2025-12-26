@@ -42,7 +42,7 @@
 - **Framework**: Flutter (Dart)
 - **State Management**: Riverpod
 - **AI Models**: 
-  - Online: Google Gemini Pro
+  - Online: pollinations
   - Offline: Gemma-2-2B (via `flutter_llama`)
 - **Connectivity**: `nearby_connections` (Mesh)
 - **Utils**: `geolocator`, `flutter_phone_direct_caller`, `permission_handler`
