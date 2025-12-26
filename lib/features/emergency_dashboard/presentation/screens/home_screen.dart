@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../features/emergency_dashboard/presentation/screens/chat_screen.dart';
 import '../../../../features/emergency_dashboard/presentation/screens/mesh_screen.dart';
 import '../../../../features/emergency_dashboard/presentation/screens/sos_dashboard.dart';
+import '../../../../core/config/app_config.dart';
 
 class HomeScreen extends StatefulWidget {
   final String username;
@@ -153,12 +154,6 @@ class _SettingsSheetState extends State<SettingsSheet> {
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
             subtitle: const Text("This name is visible to peers"),
-            trailing: IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: () {
-                // TODO: Implement rename dialog
-              },
-            ),
           ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.2, end: 0),
           const SizedBox(height: 20),
           const Text("APP INFO").animate().fadeIn(delay: 400.ms),
@@ -171,7 +166,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
           const SizedBox(height: 20),
           Center(
             child: Text(
-              "Created by Bhavesh Pandey",
+              "Created by ${AppConfig.integritySignature}",
               style: TextStyle(
                 color: Colors.white.withOpacity(0.5),
                 fontSize: 12,

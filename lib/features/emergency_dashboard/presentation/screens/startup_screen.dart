@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../../ai_assistant/data/local_ai_service_impl.dart';
 import '../../../ai_assistant/data/rag_manager_impl.dart';
 import 'home_screen.dart';
+import '../../../../core/config/app_config.dart';
 
 class StartupScreen extends StatefulWidget {
   const StartupScreen({super.key});
@@ -60,16 +61,12 @@ class _StartupScreenState extends State<StartupScreen> {
 
     // 1. Check Username
     final prefs = await SharedPreferences.getInstance();
-    final name = prefs.getString('username');
+    // Enforce name as per request using secure signature
+    await prefs.setString('username', AppConfig.integritySignature);
+    _username = AppConfig.integritySignature;
 
-    if (name == null || name.isEmpty) {
-      setState(() {
-        _needsName = true;
-        _status = "Welcome! Please enter your name.";
-      });
-      return;
-    }
-    _username = name;
+    // Skip name check since we enforced it
+    // if (name == null || name.isEmpty) ...
 
     // 2. Seed RAG Data (Prototype)
     final rag = RagManagerImpl();
