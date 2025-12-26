@@ -117,35 +117,7 @@ graph TD
     P1 -- "Request Guide" --> D3
     D3 -- "Return Steps/Images" --> P1
 
-## 🚀 Getting Started
 
-### Prerequisites
-- Flutter SDK installed
-- Android device (for full feature support including Mesh & Offline AI)
-
-### Installation
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/kreoassist.git
-   ```
-2. Install dependencies:
-   ```bash
-   flutter pub get
-   ```
-3. Run the app:
-   ```bash
-   flutter run
-   ```
-
----
-
-## 📸 Screenshots
-<img width="540" height="1200" alt="image" src="https://github.com/user-attachments/assets/608b43b6-ff97-47f6-813a-fd83e1fe6832" />
-
-##here is the apk file-https://drive.google.com/file/d/1sv9jm5E4_LmVzwbmG9m1C85HvjJGUmtq/view?usp=share_link
-
-
----
 
 ## 👨‍💻 Author
 **Bhavesh Pandey**
