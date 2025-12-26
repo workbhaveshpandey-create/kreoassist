@@ -1,4 +1,4 @@
-# KreoAssist 🚑
+# KreoAssist 
 
 > **Empowering Resilience, Ensuring Safety.**
 > *Created by Bhavesh Pandey*
