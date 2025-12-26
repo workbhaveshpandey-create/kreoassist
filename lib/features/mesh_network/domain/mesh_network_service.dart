@@ -11,12 +11,16 @@ abstract class MeshNetworkService {
 
   /// Starts advertising this device to nearby devices.
   /// [username] is the display name visible to others.
-  Future<void> startAdvertising(String username);
+  /// [userId] is the stable UUID of this device.
+  Future<void> startAdvertising(String username, String userId);
 
   /// Starts discovering nearby devices.
-  Future<void> startDiscovery();
+  Future<void> startDiscovery(String userId);
 
-  /// Stops both advertising and discovery.
+  Future<void> stopAdvertising();
+  Future<void> stopDiscovery();
+
+  /// Stops both advertising and discovery, and disconnects all endpoints.
   Future<void> stopAll();
 
   /// Sends a payload to a specific [endpointId].

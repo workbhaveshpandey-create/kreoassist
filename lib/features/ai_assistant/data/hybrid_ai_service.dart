@@ -3,6 +3,8 @@ import 'package:path_provider/path_provider.dart';
 import 'local_ai_service_impl.dart';
 import 'google_ai_service.dart';
 
+import 'package:flutter/foundation.dart';
+
 /// Hybrid AI Service that automatically switches between:
 /// - Google Gemini API (online) for faster, more powerful responses
 /// - Local Gemma model (offline) when network is unavailable
@@ -10,6 +12,9 @@ class HybridAIService {
   final LocalAIServiceImpl _localService = LocalAIServiceImpl();
   bool _localModelLoaded = false;
   bool _useOnlineByDefault = true;
+
+  /// Notifies listeners about the loading state (true = loading, false = ready)
+  final ValueNotifier<bool> isLoadingNotifier = ValueNotifier(false);
 
   /// Set Google API key for online mode
   void setGoogleApiKey(String key) {
@@ -26,6 +31,7 @@ class HybridAIService {
 
   /// Initialize the hybrid service
   Future<void> initialize() async {
+    isLoadingNotifier.value = true;
     try {
       final dir = await getApplicationDocumentsDirectory();
       final modelPath = "${dir.path}/${LocalAIServiceImpl.MODEL_FILENAME}";
@@ -34,6 +40,9 @@ class HybridAIService {
     } catch (e) {
       print("[HybridAI] Error loading local model: $e");
       _localModelLoaded = false;
+    } finally {
+      // Ensure we notify that loading is finished, success or fail
+      isLoadingNotifier.value = false;
     }
   }
 
@@ -82,13 +91,25 @@ class HybridAIService {
     if (_localModelLoaded) {
       yield "📱 "; // Indicator for offline mode
       print("[HybridAI] Using offline local model...");
-      await for (final chunk
-          in _localService.generateResponse(prompt, context: context)) {
-        yield chunk;
+      try {
+        // Add timeout because native crashes don't throw Dart exceptions
+        bool gotResponse = false;
+        await for (final chunk in _localService
+            .generateResponse(prompt, context: context)
+            .timeout(const Duration(seconds: 30))) {
+          gotResponse = true;
+          yield chunk;
+        }
+        if (!gotResponse) {
+          yield "⚠️ Local AI did not respond. Please connect to WiFi for online AI.";
+        }
+        print("[HybridAI] Offline response complete!");
+      } catch (e) {
+        print("[HybridAI] ❌ Local AI generation CRASHED: $e");
+        yield "\n⚠️ Local AI error: Please connect to WiFi to use online AI mode.";
       }
-      print("[HybridAI] Offline response complete!");
     } else {
-      yield "⚠️ AI unavailable. No network and local model not loaded.";
+      yield "⚠️ AI loading... Please wait 10-20 seconds for local model to initialize, or connect to WiFi.";
     }
   }
 

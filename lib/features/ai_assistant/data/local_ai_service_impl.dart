@@ -77,27 +77,60 @@ class LocalAIServiceImpl implements LocalAIService {
   @override
   Future<bool> loadModel(String path) async {
     try {
-      print("Loading Gemma model from $path...");
+      final file = File(path);
+      if (!await file.exists()) {
+        print("❌ Error: Model file not found at $path");
+        _isLoaded = false;
+        return false;
+      }
+
+      // INTEGRITY CHECK: Verify file size
+      // Gemma 2b Q4_K_M is approx 1.6GB. If it's < 1GB, it's definitely corrupt/partial.
+      final size = await file.length();
+      final sizeMB = size / (1024 * 1024);
+      print(
+          "🔎 Verifying model integrity... Size: ${sizeMB.toStringAsFixed(2)} MB");
+
+      if (sizeMB < 1000) {
+        print(
+            "❌ Error: Model file is too small (Partial download?). Deleting...");
+        try {
+          await file.delete();
+          print("🗑️ Corrupt file deleted. Please restart app to redownload.");
+        } catch (e) {
+          print("Warning: Could not delete corrupt file: $e");
+        }
+        _isLoaded = false;
+        return false;
+      }
+
+      print("Loading Gemma model from absolute path: ${file.absolute.path}...");
 
       _llama = FlutterLlama.instance;
-      // HIGH PERFORMANCE config - Full GPU usage
+      // STABILITY CONFIG: Optimized for low-memory devices to prevent crashes
       await _llama.loadModel(
         LlamaConfig(
-          modelPath: path,
-          nThreads: 4, // Use more CPU threads
-          nGpuLayers: 99, // Offload ALL layers to GPU for max speed
-          contextSize: 2048, // Full context
-          batchSize: 512, // Larger batches for GPU
-          useGpu: true,
+          modelPath: file.absolute.path,
+          // Reduced threads to prevent CPU starvation/thermal throttling
+          nThreads: 2,
+          // 0 GPU layers + useGpu: false ensures NO GPU usage (safer for stability)
+          nGpuLayers: 0,
+          // Reduced context size to save approx. 500MB+ RAM
+          contextSize: 1024,
+          // Smaller batch size to reduce peak memory spikes
+          batchSize: 256,
+          useGpu: false,
         ),
       );
 
       _isLoaded = true;
-      print("Model loaded successfully.");
+      print("✅ Model loaded successfully (Low Resource Mode).");
       return true;
-    } catch (e) {
-      print("Error loading model: $e");
+    } catch (e, stackTrace) {
+      print("❌ Error loading model: $e");
+      print("Stack trace: $stackTrace");
       _isLoaded = false;
+      _llama = null; // Clean up potential partial init
       return false;
     }
   }

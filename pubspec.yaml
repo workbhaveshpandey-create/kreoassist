@@ -46,6 +46,7 @@ dependencies:
   # For now, we will structure the interface to wrap FFI calls.
   flutter_local_notifications: ^18.0.1
   flutter_phone_direct_caller: ^2.2.1
+  package_info_plus: ^9.0.0
 
 dev_dependencies:
   flutter_test:

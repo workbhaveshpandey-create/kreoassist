@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -6,7 +7,6 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../../ai_assistant/data/local_ai_service_impl.dart';
 import '../../../ai_assistant/data/rag_manager_impl.dart';
 import 'home_screen.dart';
-import '../../../../core/config/app_config.dart';
 
 class StartupScreen extends StatefulWidget {
   const StartupScreen({super.key});
@@ -24,6 +24,7 @@ class _StartupScreenState extends State<StartupScreen> {
   bool _downloading = false;
   bool _needsName = false;
   String? _username;
+  String? _userId;
 
   @override
   void initState() {
@@ -45,6 +46,8 @@ class _StartupScreenState extends State<StartupScreen> {
         Permission.microphone, // Added for STT feature
         Permission.sms, // For emergency SMS
         Permission.phone, // For emergency calls
+        Permission
+            .notification, // For persistent background scanning notification
       ].request();
 
       bool allGranted = statuses.values.every((status) => status.isGranted);
@@ -59,14 +62,26 @@ class _StartupScreenState extends State<StartupScreen> {
       print("Skipping permissions on Desktop/Web");
     }
 
-    // 1. Check Username
+    // 1. Check Username & User ID (Stable Identity)
     final prefs = await SharedPreferences.getInstance();
-    // Enforce name as per request using secure signature
-    await prefs.setString('username', AppConfig.integritySignature);
-    _username = AppConfig.integritySignature;
 
-    // Skip name check since we enforced it
-    // if (name == null || name.isEmpty) ...
+    // Generate UUID if missing (for stable mesh identity)
+    if (!prefs.containsKey('userId')) {
+      await prefs.setString('userId', const Uuid().v4());
+    }
+    _userId = prefs.getString('userId');
+
+    final name = prefs.getString('username');
+
+    if (name == null || name.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _needsName = true;
+        });
+      }
+      return;
+    }
+    _username = name;
 
     // 2. Seed RAG Data (Prototype)
     final rag = RagManagerImpl();
@@ -183,7 +198,10 @@ class _StartupScreenState extends State<StartupScreen> {
   void _navigateToHome() {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-          builder: (_) => HomeScreen(username: _username ?? "User")),
+          builder: (_) => HomeScreen(
+                username: _username ?? "User",
+                userId: _userId ?? "unknown_id",
+              )),
     );
   }
 
@@ -252,17 +270,8 @@ class _StartupScreenState extends State<StartupScreen> {
                 // Beautiful Loading Slider
                 if (_downloading)
                   SizedBox(
-                    width: 250,
-                    child: Column(
-                      children: [
-                        _BeautifulSlider(value: _progress),
-                        const SizedBox(height: 12),
-                        Text(
-                          "${(_progress * 100).toInt()}%",
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
+                    width: 280,
+                    child: _BeautifulSlider(value: _progress),
                   ).animate().fadeIn()
                 else if (!_needsName)
                   const SizedBox(
@@ -287,42 +296,69 @@ class _BeautifulSlider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 8,
-      decoration: BoxDecoration(
-        color: Colors.grey[300],
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Stack(
-        children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                width: constraints.maxWidth * value,
-                height: 8,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [
-                      Colors.deepPurple,
-                      Colors.purpleAccent,
-                      Colors.blue
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(4),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.purple.withOpacity(0.4),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-              );
-            },
+    return Column(
+      children: [
+        // Main Progress Bar
+        Container(
+          height: 6,
+          decoration: BoxDecoration(
+            color: const Color(0xFF2A2A2A),
+            borderRadius: BorderRadius.circular(3),
           ),
-        ],
-      ),
+          child: Stack(
+            children: [
+              // Animated Progress Fill
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: constraints.maxWidth * value,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFFFF9933), // Saffron
+                          Color(0xFFFFFFFF), // White
+                          Color(0xFF138808), // Green
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(3),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFFF9933).withOpacity(0.5),
+                          blurRadius: 8,
+                          offset: const Offset(0, 0),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // Progress Percentage with Glow
+        Text(
+          "${(_progress * 100).toInt()}%",
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+            letterSpacing: 1,
+            shadows: [
+              Shadow(
+                color: const Color(0xFFFF9933).withOpacity(0.5),
+                blurRadius: 10,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
+
+  double get _progress => value;
 }

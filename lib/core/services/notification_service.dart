@@ -30,7 +30,12 @@ class NotificationService {
 
     await _notificationsPlugin.initialize(
       initializationSettings,
-      // onDidReceiveNotificationResponse: (details) { ... }
+      onDidReceiveNotificationResponse: (NotificationResponse details) {
+        // When notification is tapped, bring app to foreground (default)
+        // We can parse 'details.payload' to navigate to specific chat if needed
+        print("🔔 Notification Tapped: ${details.payload}");
+        // TODO: Implement navigation via GlobalKey if needed
+      },
     );
   }
 
@@ -47,6 +52,7 @@ class NotificationService {
       channelDescription: 'Notifications for Mesh network connections and SOS',
       importance: Importance.max,
       priority: Priority.high,
+      icon: '@mipmap/ic_launcher', // Standard mipmap launcher icon
     );
 
     const NotificationDetails platformDetails =
