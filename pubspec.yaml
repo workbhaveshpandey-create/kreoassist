@@ -1,7 +1,7 @@
 name: kreoassist
 description: "Offline AI & Mesh Network Assistant for Disaster Relief"
 publish_to: 'none'
-version: 1.1.0+2
+version: 1.2.0+3
 
 environment:
   sdk: '>=3.2.0 <4.0.0'
@@ -47,6 +47,7 @@ dependencies:
   flutter_local_notifications: ^18.0.1
   flutter_phone_direct_caller: ^2.2.1
   package_info_plus: ^9.0.0
+  open_filex: ^4.5.0  # For opening APK files to install
 
 dev_dependencies:
   flutter_test:

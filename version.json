@@ -1,6 +1,6 @@
 {
-    "version": "1.1.0",
-    "build": 2,
-    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.1.0/app-release.apk",
-    "release_notes": "🔧 Mesh Network Stability Fixes:\n• Fixed duplicate device ID issue on reconnection\n• Improved online/offline status accuracy\n• Persistent peer identity across sessions\n\n⚙️ Settings Improvements:\n• Added 'Check for Updates' panel with manual refresh\n• Dynamic version display from app info"
+    "version": "1.2.0",
+    "build": 3,
+    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.2.0/app-release.apk",
+    "release_notes": "📥 In-App Update Download:\n• Download updates within the app with progress bar\n• No more browser redirects - smooth in-app experience\n• Automatic APK installer launch\n\n🔧 Previous Fixes (v1.1.0):\n• Fixed duplicate device ID on reconnection\n• Improved online/offline status accuracy\n• Added 'Check for Updates' in Settings"
 }
