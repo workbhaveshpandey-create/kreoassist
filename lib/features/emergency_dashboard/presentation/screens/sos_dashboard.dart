@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
 import '../../../../core/services/flashlight_service.dart';
+import '../../../../core/services/siren_service.dart';
 import 'first_aid_screen.dart';
+import 'medical_profile_screen.dart';
 import 'offline_maps_screen.dart';
 import 'sos_screen.dart';
 
@@ -24,6 +26,8 @@ class _SOSDashboardState extends State<SOSDashboard> {
     _checkFlashlight();
   }
 
+  final SirenService _sirenService = SirenService();
+
   Future<void> _checkFlashlight() async {
     final has = await FlashlightService.hasFlashlight();
     if (mounted) {
@@ -33,6 +37,8 @@ class _SOSDashboardState extends State<SOSDashboard> {
 
   Future<void> _toggleFlashlight() async {
     await FlashlightService.toggle();
+    // Stop Siren if it was running (transition from SOS to Flashlight)
+    await _sirenService.stopSiren();
     if (mounted) {
       setState(() {
         _flashlightOn = FlashlightService.isOn;
@@ -44,6 +50,7 @@ class _SOSDashboardState extends State<SOSDashboard> {
   Future<void> _toggleSOS() async {
     if (_sosActive) {
       await FlashlightService.stopSOS();
+      await _sirenService.stopSiren();
       if (mounted) {
         setState(() {
           _sosActive = false;
@@ -55,11 +62,13 @@ class _SOSDashboardState extends State<SOSDashboard> {
         _sosActive = true;
         _flashlightOn = false;
       });
-      await FlashlightService.startSOS(
-        onCycleComplete: () {
-          // Optional: vibrate or update UI on each SOS cycle
-        },
-      );
+      // Start both Light and Sound
+      await Future.wait([
+        FlashlightService.startSOS(
+          onCycleComplete: () {},
+        ),
+        _sirenService.startSiren(),
+      ]);
     }
   }
 
@@ -67,6 +76,7 @@ class _SOSDashboardState extends State<SOSDashboard> {
   void dispose() {
     FlashlightService.stopSOS();
     FlashlightService.turnOff();
+    _sirenService.stopSiren();
     super.dispose();
   }
 
@@ -182,6 +192,134 @@ class _SOSDashboardState extends State<SOSDashboard> {
               ),
             ),
           ).animate().fadeIn(delay: 200.ms, duration: 300.ms),
+
+          const SizedBox(height: 16),
+
+          // Medical ID Card - Premium Design
+          GestureDetector(
+            onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const MedicalProfileScreen())),
+            child: Container(
+              height: 100,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [
+                    Color(0xFF2C2C2C),
+                    Color(0xFF1E1E1E)
+                  ], // Dark Metallic
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.08),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 15,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Stack(
+                children: [
+                  // Decorative Heartbeat Line (Visual only)
+                  Positioned(
+                    right: -20,
+                    bottom: -20,
+                    child: Icon(
+                      Icons.monitor_heart_outlined,
+                      size: 120,
+                      color: const Color(0xFFFF5252).withOpacity(0.05),
+                    ),
+                  ),
+
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 22),
+                    child: Row(
+                      children: [
+                        // Icon Container
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFFF5252), Color(0xFFD32F2F)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFFF5252).withOpacity(0.3),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.medical_information_outlined,
+                            color: Colors.white,
+                            size: 28,
+                          ),
+                        ),
+
+                        const SizedBox(width: 16),
+
+                        // Text Content
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Digital Medical ID',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Lock Screen Emergency Info',
+                                style: TextStyle(
+                                  color: Colors.white60,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Action Icon
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.05),
+                              shape: BoxShape.circle),
+                          child: const Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            color: Colors.white54,
+                            size: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+              .animate()
+              .fadeIn(delay: 250.ms, duration: 400.ms)
+              .slideX(begin: 0.05, duration: 400.ms),
 
           const SizedBox(height: 24),
 

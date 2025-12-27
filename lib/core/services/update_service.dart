@@ -1,11 +1,12 @@
 import 'dart:convert';
-import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:background_downloader/background_downloader.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
+import 'notification_service.dart';
 
 /// Self-hosted OTA Update Service
 /// Checks GitHub for new versions and prompts user to update
@@ -44,6 +45,30 @@ class UpdateService {
     } catch (e) {
       // Silently fail - don't interrupt user experience
       debugPrint('Update check failed: $e');
+    }
+  }
+
+  /// Check for updates in background (Headless)
+  static Future<void> checkForUpdatesInBackground() async {
+    try {
+      final response = await http
+          .get(Uri.parse(_versionUrl))
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final remoteVersion = json.decode(response.body);
+        final packageInfo = await PackageInfo.fromPlatform();
+
+        final currentBuild = int.tryParse(packageInfo.buildNumber) ?? 0;
+        final remoteBuild = remoteVersion['build'] as int? ?? 0;
+
+        if (remoteBuild > currentBuild) {
+          await NotificationService.showUpdateNotification(
+              version: remoteVersion['version'] as String? ?? 'Unknown');
+        }
+      }
+    } catch (e) {
+      debugPrint("Background update check failed: $e");
     }
   }
 

@@ -3,11 +3,40 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
+import 'package:workmanager/workmanager.dart';
 
+import 'core/services/update_service.dart';
 import 'features/emergency_dashboard/presentation/screens/startup_screen.dart';
+
+@pragma('vm:entry-point')
+void callbackDispatcher() {
+  Workmanager().executeTask((task, inputData) async {
+    if (task == "check_updates") {
+      print("Worker: Checking for updates...");
+      await UpdateService.checkForUpdatesInBackground();
+    }
+    return Future.value(true);
+  });
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Background Worker
+  Workmanager().initialize(
+    callbackDispatcher,
+    isInDebugMode: false, // Set to true to see notifications immediately in dev
+  );
+
+  // Register Periodic Task (Every 1 hour)
+  Workmanager().registerPeriodicTask(
+    "update_check_task",
+    "check_updates",
+    frequency: const Duration(hours: 1),
+    constraints: Constraints(
+      networkType: NetworkType.connected,
+    ),
+  );
 
   // Force portrait orientation
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);

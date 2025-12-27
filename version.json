@@ -1,6 +1,6 @@
 {
-    "version": "1.4.1",
-    "build": 7,
-    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.4.1/app-release.apk",
-    "release_notes": "🎨 UI Improvements:\n• Cleaner Offline Maps card design\n• Premium styled notifications\n• Better Maps screen with glassmorphism\n\n🗺️ Previous (v1.4.0):\n• Offline Maps feature"
+    "version": "1.4.2",
+    "build": 8,
+    "release_notes": "✨ Major Update!\n\n🚨 **Siren & SOS:** High-pitch generated alarm + Flashlight SOS.\n🏥 **Digital Medical ID:** Securely store blood group/allergies for Lock Screen notification.\n🔄 **Background Updates:** App checks for updates even when closed.\n\nAlso includes premium UI improvements.",
+    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/tag/v1.4.2"
 }
