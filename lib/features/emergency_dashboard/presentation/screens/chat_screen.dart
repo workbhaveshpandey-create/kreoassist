@@ -379,15 +379,17 @@ class _EmptyChatPlaceholder extends StatelessWidget {
               color: Colors.white.withOpacity(0.05),
               shape: BoxShape.circle,
             ),
-            child: Image.asset(
-              'assets/images/app_logo.png',
-              width: 80,
-              height: 80,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) => const Icon(
-                  Icons.auto_awesome,
-                  size: 60,
-                  color: Color(0xFF00BCD4)),
+            child: ClipOval(
+              child: Image.asset(
+                'assets/images/app_logo.png',
+                width: 80,
+                height: 80,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => const Icon(
+                    Icons.auto_awesome,
+                    size: 60,
+                    color: Color(0xFF00BCD4)),
+              ),
             ).animate().scale(duration: 800.ms, curve: Curves.easeOutBack),
           ),
           const SizedBox(height: 24),
