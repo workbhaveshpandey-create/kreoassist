@@ -2,5 +2,5 @@
     "version": "1.4.4",
     "build": 10,
     "release_notes": "🎨 **UI Polish (v1.4.4)**\n\n- Fixed AI Assistant Logo shape (Round).\n- Includes all features from 1.4.3 (Siren, Medical ID, Background Updates).\n- **APK Compatibility:** Fixed 'Parse Error'.",
-    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/tag/v1.4.4"
+    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.4.4/app-release.apk"
 }
