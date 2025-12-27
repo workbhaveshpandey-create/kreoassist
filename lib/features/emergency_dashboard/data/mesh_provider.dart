@@ -103,10 +103,15 @@ class MeshState {
   final List<String> connectedEndpoints;
   final List<String> logs;
   final List<MeshMessage> incomingMessages;
-  final Map<String, String> peerNames; // endpointId -> DisplayName
+  final Map<String, String> peerNames; // endpointId -> DisplayName (legacy)
   final Map<String, String> endpointToUserId; // endpointId -> Stable UserId
   final Map<String, EmergencyStatus> peerStatuses; // userId -> EmergencyStatus
   final EmergencyStatus? myStatus; // Current user's broadcasted status
+  final bool backgroundMode;
+
+  // NEW: Stable identity tracking for reconnection support
+  final Set<String> onlinePeers; // Set of userIds currently online
+  final Map<String, String> userIdToName; // userId -> display name (persisted)
 
   const MeshState({
     this.isAdvertising = false,
@@ -120,10 +125,9 @@ class MeshState {
     this.peerStatuses = const {},
     this.myStatus,
     this.backgroundMode = false,
+    this.onlinePeers = const {},
+    this.userIdToName = const {},
   });
-
-  // State Props
-  final bool backgroundMode;
 
   MeshState copyWith({
     bool? isAdvertising,
@@ -137,6 +141,8 @@ class MeshState {
     Map<String, EmergencyStatus>? peerStatuses,
     EmergencyStatus? myStatus,
     bool? backgroundMode,
+    Set<String>? onlinePeers,
+    Map<String, String>? userIdToName,
   }) {
     return MeshState(
       isAdvertising: isAdvertising ?? this.isAdvertising,
@@ -150,6 +156,8 @@ class MeshState {
       peerStatuses: peerStatuses ?? this.peerStatuses,
       myStatus: myStatus ?? this.myStatus,
       backgroundMode: backgroundMode ?? this.backgroundMode,
+      onlinePeers: onlinePeers ?? this.onlinePeers,
+      userIdToName: userIdToName ?? this.userIdToName,
     );
   }
 }
@@ -192,6 +200,35 @@ class MeshNotifier extends StateNotifier<MeshState> {
       : super(const MeshState()) {
     _initListeners();
     _initBackgroundMode();
+    _loadPersistedPeerNames(); // Load cached peer names for reconnection support
+  }
+
+  /// Load persisted peer names from SharedPreferences
+  Future<void> _loadPersistedPeerNames() async {
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys().where((k) => k.startsWith('peer_name_'));
+    final loadedNames = <String, String>{};
+
+    for (final key in keys) {
+      final userId = key.replaceFirst('peer_name_', '');
+      final name = prefs.getString(key);
+      if (name != null && name.isNotEmpty) {
+        loadedNames[userId] = name;
+        _userIdToName[userId] = name; // Also update internal cache
+      }
+    }
+
+    if (loadedNames.isNotEmpty) {
+      state = state.copyWith(userIdToName: loadedNames);
+      print('📥 Loaded ${loadedNames.length} persisted peer names');
+    }
+  }
+
+  /// Persist a peer's name to SharedPreferences
+  Future<void> _persistPeerName(String userId, String name) async {
+    if (name.isEmpty || name == 'Unknown') return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('peer_name_$userId', name);
   }
 
   Future<void> _initBackgroundMode() async {
@@ -264,14 +301,24 @@ class MeshNotifier extends StateNotifier<MeshState> {
       state =
           state.copyWith(connectedEndpoints: _meshService.connectedEndpoints);
 
-      // Cleanup disconnected endpoints from maps
+      // Update online status based on current connections
       final connected = _meshService.connectedEndpoints;
 
-      // 1. Clean local caches
+      // 1. Update endpoint caches (these ARE transient)
       _endpointToUserId.removeWhere((k, v) => !connected.contains(k));
       _userIdToEndpoint.removeWhere((k, v) => !connected.contains(v));
 
-      // 2. Clean State Maps (Crucial for UI)
+      // 2. Update onlinePeers based on current endpoint→userId mappings
+      // DO NOT clear userIdToName - that's our persistence layer!
+      final currentOnlinePeers = <String>{};
+      for (final endpoint in connected) {
+        final userId = _endpointToUserId[endpoint];
+        if (userId != null) {
+          currentOnlinePeers.add(userId);
+        }
+      }
+
+      // 3. Update state - only change endpoint-based maps, preserve userId maps
       final newEndpointMap = Map<String, String>.from(state.endpointToUserId);
       newEndpointMap.removeWhere((k, v) => !connected.contains(k));
 
@@ -281,6 +328,8 @@ class MeshNotifier extends StateNotifier<MeshState> {
       state = state.copyWith(
         endpointToUserId: newEndpointMap,
         peerNames: newPeerNames,
+        onlinePeers: currentOnlinePeers,
+        // userIdToName is NOT cleared - it persists!
       );
     });
 
@@ -347,6 +396,9 @@ class MeshNotifier extends StateNotifier<MeshState> {
       _endpointToUserId[senderEndpoint] = peerUserId;
       _userIdToEndpoint[peerUserId] = senderEndpoint;
 
+      // Persist the peer name for reconnection support
+      _persistPeerName(peerUserId, peerName);
+
       // Update State for UI
       final newPeerNames = Map<String, String>.from(state.peerNames);
       newPeerNames[senderEndpoint] = peerName;
@@ -354,9 +406,19 @@ class MeshNotifier extends StateNotifier<MeshState> {
       final newEndpointMap = Map<String, String>.from(state.endpointToUserId);
       newEndpointMap[senderEndpoint] = peerUserId;
 
+      // Update userIdToName map (stable, persisted)
+      final newUserIdToName = Map<String, String>.from(state.userIdToName);
+      newUserIdToName[peerUserId] = peerName;
+
+      // Add to onlinePeers
+      final newOnlinePeers = Set<String>.from(state.onlinePeers);
+      newOnlinePeers.add(peerUserId);
+
       state = state.copyWith(
         peerNames: newPeerNames,
         endpointToUserId: newEndpointMap,
+        userIdToName: newUserIdToName,
+        onlinePeers: newOnlinePeers,
       );
 
       print("🤝 Handshake received from $peerName ($peerUserId)");

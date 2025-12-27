@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../../../features/emergency_dashboard/data/mesh_provider.dart';
 import '../../../../features/emergency_dashboard/presentation/screens/chat_screen.dart';
 import '../../../../features/emergency_dashboard/presentation/screens/mesh_screen.dart';
@@ -151,11 +152,14 @@ class SettingsSheet extends ConsumerStatefulWidget {
 
 class _SettingsSheetState extends ConsumerState<SettingsSheet> {
   String _username = "Loading...";
+  String _currentVersion = "Loading...";
+  bool _checkingUpdate = false;
 
   @override
   void initState() {
     super.initState();
     _loadUser();
+    _loadVersion();
   }
 
   Future<void> _loadUser() async {
@@ -163,6 +167,56 @@ class _SettingsSheetState extends ConsumerState<SettingsSheet> {
     setState(() {
       _username = prefs.getString('username') ?? "Unknown User";
     });
+  }
+
+  Future<void> _loadVersion() async {
+    try {
+      // Use package_info_plus to get actual version
+      final packageInfo = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() {
+          _currentVersion =
+              "${packageInfo.version} (Build ${packageInfo.buildNumber})";
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _currentVersion = "1.0.0";
+        });
+      }
+    }
+  }
+
+  Future<void> _checkForUpdates() async {
+    setState(() => _checkingUpdate = true);
+
+    try {
+      await UpdateService.checkForUpdates(context);
+      // If no update dialog was shown, show "up to date" feedback
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("✅ You're using the latest version!"),
+            backgroundColor: Color(0xFF4CAF50),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Failed to check for updates: $e"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _checkingUpdate = false);
+      }
+    }
   }
 
   @override
@@ -217,13 +271,43 @@ class _SettingsSheetState extends ConsumerState<SettingsSheet> {
             },
           ).animate().fadeIn(delay: 350.ms),
           const SizedBox(height: 20),
-          const Text("APP INFO").animate().fadeIn(delay: 400.ms),
-          const ListTile(
+          const Text("APP UPDATES").animate().fadeIn(delay: 400.ms),
+          ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.info_outline),
-            title: Text("Version"),
-            trailing: Text("1.0.0 (Prototype)"),
-          ).animate().fadeIn(delay: 500.ms),
+            leading: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF4CAF50).withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.system_update_outlined,
+                  color: Color(0xFF4CAF50), size: 24),
+            ),
+            title: const Text("Check for Updates",
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text("Current: $_currentVersion"),
+            trailing: _checkingUpdate
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Color(0xFF4CAF50),
+                    ),
+                  )
+                : IconButton(
+                    icon: const Icon(Icons.refresh, color: Color(0xFF4CAF50)),
+                    onPressed: _checkForUpdates,
+                  ),
+          ).animate().fadeIn(delay: 450.ms),
+          const SizedBox(height: 20),
+          const Text("APP INFO").animate().fadeIn(delay: 500.ms),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.info_outline),
+            title: const Text("Version"),
+            trailing: Text(_currentVersion),
+          ).animate().fadeIn(delay: 550.ms),
           const SizedBox(height: 20),
           Center(
             child: Text(

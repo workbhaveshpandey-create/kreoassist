@@ -621,7 +621,8 @@ class _MeshScreenState extends ConsumerState<MeshScreen>
 
   Widget _buildRecentChatsPanel() {
     final meshState = ref.watch(meshProvider);
-    final onlineUserIds = meshState.endpointToUserId.values.toSet();
+    // Use the stable onlinePeers set for reliable online status
+    final onlinePeers = meshState.onlinePeers;
 
     return Container(
       height: 90,
@@ -661,9 +662,8 @@ class _MeshScreenState extends ConsumerState<MeshScreen>
               itemCount: _recentChatPeers.length,
               itemBuilder: (context, index) {
                 final peerId = _recentChatPeers[index];
-                // Check if online via UserID map OR raw EndpointID list
-                final isOnline = onlineUserIds.contains(peerId) ||
-                    meshState.connectedEndpoints.contains(peerId);
+                // Use stable onlinePeers set for accurate online status
+                final isOnline = onlinePeers.contains(peerId);
 
                 // Get unread count
                 final incomingMessages =
@@ -671,8 +671,10 @@ class _MeshScreenState extends ConsumerState<MeshScreen>
                 final unreadCount =
                     incomingMessages.where((m) => m.senderId == peerId).length;
 
-                // Resolve Name
-                final displayName = _cachedPeerNames[peerId] ?? "Unknown";
+                // Resolve Name - prefer state's userIdToName, then cached, then Unknown
+                final displayName = meshState.userIdToName[peerId] ??
+                    _cachedPeerNames[peerId] ??
+                    "Unknown";
 
                 return GestureDetector(
                   onTap: () => _openChat(peerId, displayName),
