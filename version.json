@@ -1,6 +1,6 @@
 {
-    "version": "1.2.0",
-    "build": 3,
-    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.2.0/app-release.apk",
-    "release_notes": "📥 In-App Update Download:\n• Download updates within the app with progress bar\n• No more browser redirects - smooth in-app experience\n• Automatic APK installer launch\n\n🔧 Previous Fixes (v1.1.0):\n• Fixed duplicate device ID on reconnection\n• Improved online/offline status accuracy\n• Added 'Check for Updates' in Settings"
+    "version": "1.3.0",
+    "build": 4,
+    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.3.0/app-release.apk",
+    "release_notes": "🔦 Flashlight & SOS Morse Code:\n• Flashlight toggle in SOS Dashboard\n• SOS Morse Code blinker (... --- ...)\n• Beautiful glowing UI when active\n\n📥 Previous (v1.2.0):\n• In-app update download with progress\n• Mesh Network stability fixes"
 }

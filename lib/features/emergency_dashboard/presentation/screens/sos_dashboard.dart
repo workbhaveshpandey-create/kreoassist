@@ -1,11 +1,73 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
+import '../../../../core/services/flashlight_service.dart';
 import 'first_aid_screen.dart';
 import 'sos_screen.dart';
 
-class SOSDashboard extends StatelessWidget {
+class SOSDashboard extends StatefulWidget {
   const SOSDashboard({super.key});
+
+  @override
+  State<SOSDashboard> createState() => _SOSDashboardState();
+}
+
+class _SOSDashboardState extends State<SOSDashboard> {
+  bool _flashlightOn = false;
+  bool _sosActive = false;
+  bool _hasFlashlight = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkFlashlight();
+  }
+
+  Future<void> _checkFlashlight() async {
+    final has = await FlashlightService.hasFlashlight();
+    if (mounted) {
+      setState(() => _hasFlashlight = has);
+    }
+  }
+
+  Future<void> _toggleFlashlight() async {
+    await FlashlightService.toggle();
+    if (mounted) {
+      setState(() {
+        _flashlightOn = FlashlightService.isOn;
+        _sosActive = false;
+      });
+    }
+  }
+
+  Future<void> _toggleSOS() async {
+    if (_sosActive) {
+      await FlashlightService.stopSOS();
+      if (mounted) {
+        setState(() {
+          _sosActive = false;
+          _flashlightOn = false;
+        });
+      }
+    } else {
+      setState(() {
+        _sosActive = true;
+        _flashlightOn = false;
+      });
+      await FlashlightService.startSOS(
+        onCycleComplete: () {
+          // Optional: vibrate or update UI on each SOS cycle
+        },
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    FlashlightService.stopSOS();
+    FlashlightService.turnOff();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +116,136 @@ class SOSDashboard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
+
+          // Flashlight Panel
+          if (_hasFlashlight)
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: _sosActive
+                      ? const Color(0xFFFF5252).withOpacity(0.5)
+                      : _flashlightOn
+                          ? const Color(0xFFFFD54F).withOpacity(0.5)
+                          : Colors.white10,
+                  width: _sosActive || _flashlightOn ? 2 : 1,
+                ),
+                boxShadow: [
+                  if (_sosActive)
+                    BoxShadow(
+                      color: const Color(0xFFFF5252).withOpacity(0.3),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                    ),
+                  if (_flashlightOn && !_sosActive)
+                    BoxShadow(
+                      color: const Color(0xFFFFD54F).withOpacity(0.3),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                    ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        _sosActive
+                            ? Icons.sos
+                            : _flashlightOn
+                                ? Icons.flashlight_on
+                                : Icons.flashlight_off,
+                        size: 20,
+                        color: _sosActive
+                            ? const Color(0xFFFF5252)
+                            : _flashlightOn
+                                ? const Color(0xFFFFD54F)
+                                : Colors.white54,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        _sosActive
+                            ? "SOS Signal Active"
+                            : _flashlightOn
+                                ? "Flashlight On"
+                                : "Flashlight & SOS",
+                        style: TextStyle(
+                          color: _sosActive
+                              ? const Color(0xFFFF5252)
+                              : _flashlightOn
+                                  ? const Color(0xFFFFD54F)
+                                  : Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Spacer(),
+                      if (_sosActive)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF5252).withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text(
+                            "... --- ...",
+                            style: TextStyle(
+                              color: Color(0xFFFF5252),
+                              fontFamily: 'monospace',
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildFlashlightBtn(
+                          icon: _flashlightOn
+                              ? Icons.flashlight_off
+                              : Icons.flashlight_on,
+                          label: _flashlightOn ? "Turn Off" : "Flashlight",
+                          color: const Color(0xFFFFD54F),
+                          active: _flashlightOn && !_sosActive,
+                          onTap: _toggleFlashlight,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildFlashlightBtn(
+                          icon: Icons.sos,
+                          label: _sosActive ? "Stop SOS" : "SOS Blink",
+                          color: const Color(0xFFFF5252),
+                          active: _sosActive,
+                          onTap: _toggleSOS,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _sosActive
+                        ? "Blinking SOS Morse Code pattern"
+                        : "Use SOS to blink ... --- ... pattern",
+                    style: const TextStyle(color: Colors.white38, fontSize: 11),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            )
+                .animate()
+                .fadeIn(delay: 200.ms, duration: 400.ms)
+                .slideY(begin: 0.1, duration: 400.ms),
+
+          const SizedBox(height: 24),
 
           // Emergency Numbers Panel
           Container(
@@ -105,7 +296,7 @@ class SOSDashboard extends StatelessWidget {
               .fadeIn(delay: 300.ms, duration: 400.ms)
               .slideY(begin: 0.1, duration: 400.ms),
 
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
 
           // Tip Card
           Container(
@@ -121,7 +312,7 @@ class SOSDashboard extends StatelessWidget {
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    "Tip: Mesh Network works without internet. Use it when signal is lost.",
+                    "Tip: Use SOS flashlight in dark to signal for help with Morse code.",
                     style: TextStyle(color: Colors.white70, fontSize: 12),
                   ),
                 ),
@@ -132,6 +323,44 @@ class SOSDashboard extends StatelessWidget {
               .fadeIn(delay: 400.ms, duration: 400.ms)
               .slideY(begin: 0.1, duration: 400.ms),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFlashlightBtn({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required bool active,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: active ? color.withOpacity(0.2) : const Color(0xFF333333),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: active ? color : Colors.white12,
+            width: active ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: active ? color : Colors.white70, size: 28),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: active ? color : Colors.white70,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
