@@ -1,6 +1,6 @@
 {
-    "version": "1.3.0",
-    "build": 4,
-    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.3.0/app-release.apk",
-    "release_notes": "🔦 Flashlight & SOS Morse Code:\n• Flashlight toggle in SOS Dashboard\n• SOS Morse Code blinker (... --- ...)\n• Beautiful glowing UI when active\n\n📥 Previous (v1.2.0):\n• In-app update download with progress\n• Mesh Network stability fixes"
+    "version": "1.3.1",
+    "build": 5,
+    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.3.1/app-release.apk",
+    "release_notes": "🔧 APK Install Fix:\n• Fixed update installation on Android 7+\n• Added proper file permissions\n\n🔦 Previous (v1.3.0):\n• Flashlight & SOS Morse Code blinker"
 }
