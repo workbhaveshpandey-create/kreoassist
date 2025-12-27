@@ -1,6 +1,6 @@
 {
-    "version": "1.4.2",
-    "build": 8,
-    "release_notes": "✨ Major Update!\n\n🚨 **Siren & SOS:** High-pitch generated alarm + Flashlight SOS.\n🏥 **Digital Medical ID:** Securely store blood group/allergies for Lock Screen notification.\n🔄 **Background Updates:** App checks for updates even when closed.\n\nAlso includes premium UI improvements.",
-    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/tag/v1.4.2"
+    "version": "1.4.3",
+    "build": 9,
+    "release_notes": "🚀 **Hotfix Release 1.4.3**\n\n- Improved APK compatibility (Fixed Parse Error).\n- 🚨 **Siren & SOS** enhancements.\n- 🏥 **Medical ID** UI Polish.\n- 🔄 **Background Update** reliability improvements.",
+    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/tag/v1.4.3"
 }

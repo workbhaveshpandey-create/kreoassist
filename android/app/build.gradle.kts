@@ -38,9 +38,9 @@ android {
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
             
-            // Enable R8 code shrinking to prevent unused code but KEEP what we need
-            isMinifyEnabled = true
-            isShrinkResources = true
+            // Disable R8 for compatibility and debug-signed releases to avoid parse errors
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
         }
     }
