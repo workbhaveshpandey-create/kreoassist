@@ -9,7 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 class UpdateService {
   // GitHub raw URL for version check
   static const String _versionUrl =
-      'https://raw.githubusercontent.com/workbhaveshpandey-create/kreoassist/main/version.json';
+      'https://raw.githubusercontent.com/workbhaveshpandey-create/kreoassist/master/version.json';
 
   /// Check for updates and show dialog if available
   static Future<void> checkForUpdates(BuildContext context) async {
