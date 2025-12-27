@@ -237,10 +237,13 @@ class _StartupScreenState extends State<StartupScreen> {
                 )
               ] else ...[
                 // App Logo with Animation
-                Image.asset(
-                  'assets/images/app_logo.png',
-                  width: 150,
-                  height: 150,
+                ClipOval(
+                  child: Image.asset(
+                    'assets/images/app_logo.png',
+                    width: 150,
+                    height: 150,
+                    fit: BoxFit.cover,
+                  ),
                 )
                     .animate()
                     .fade(duration: 800.ms)
