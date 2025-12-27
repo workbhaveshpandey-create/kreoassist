@@ -119,18 +119,69 @@ class _SOSDashboardState extends State<SOSDashboard> {
           ),
           const SizedBox(height: 16),
 
-          // Offline Maps Card
-          _buildQuickCard(
-            context,
-            'Offline Maps',
-            'Download for Disaster',
-            Icons.map_outlined,
-            const Color(0xFF2196F3),
-            [const Color(0xFF0D47A1), const Color(0xFF1976D2)],
-            () => Navigator.push(context,
+          // Offline Maps Card - Simple Clean Design
+          GestureDetector(
+            onTap: () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const OfflineMapsScreen())),
-          ).animate().fadeIn(delay: 200.ms, duration: 300.ms).slideY(
-              begin: 0.15, end: 0, duration: 300.ms, curve: Curves.easeOut),
+            child: Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: const Color(0xFF2A2A2A),
+                ),
+              ),
+              child: Row(
+                children: [
+                  // Simple icon
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF3B82F6).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      Icons.map_rounded,
+                      color: Color(0xFF60A5FA),
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  // Text
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Offline Maps',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        SizedBox(height: 3),
+                        Text(
+                          'Save areas for offline use',
+                          style: TextStyle(
+                            color: Colors.white54,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Arrow
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Colors.white38,
+                    size: 26,
+                  ),
+                ],
+              ),
+            ),
+          ).animate().fadeIn(delay: 200.ms, duration: 300.ms),
 
           const SizedBox(height: 24),
 
@@ -460,4 +511,67 @@ class _SOSDashboardState extends State<SOSDashboard> {
       ),
     );
   }
+
+  Widget _buildMapTag(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: Colors.white60),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white60,
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Map grid pattern painter
+class _MapGridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF3B82F6).withOpacity(0.1)
+      ..strokeWidth = 0.5
+      ..style = PaintingStyle.stroke;
+
+    const spacing = 30.0;
+
+    // Vertical lines
+    for (double x = 0; x < size.width; x += spacing) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
+
+    // Horizontal lines
+    for (double y = 0; y < size.height; y += spacing) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+
+    // Add some dots at intersections
+    final dotPaint = Paint()
+      ..color = const Color(0xFF3B82F6).withOpacity(0.2)
+      ..style = PaintingStyle.fill;
+
+    for (double x = 0; x < size.width; x += spacing) {
+      for (double y = 0; y < size.height; y += spacing) {
+        canvas.drawCircle(Offset(x, y), 2, dotPaint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

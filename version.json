@@ -1,6 +1,6 @@
 {
-    "version": "1.4.0",
-    "build": 6,
-    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.4.0/app-release.apk",
-    "release_notes": "🗺️ Offline Maps:\n• Download map areas for offline use\n• User-guided area selection\n• Works without internet\n\n🔦 Previous (v1.3.x):\n• Flashlight & SOS Morse Code\n• APK install fixes"
+    "version": "1.4.1",
+    "build": 7,
+    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.4.1/app-release.apk",
+    "release_notes": "🎨 UI Improvements:\n• Cleaner Offline Maps card design\n• Premium styled notifications\n• Better Maps screen with glassmorphism\n\n🗺️ Previous (v1.4.0):\n• Offline Maps feature"
 }
