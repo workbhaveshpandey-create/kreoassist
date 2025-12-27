@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
 import '../../../../core/services/flashlight_service.dart';
 import 'first_aid_screen.dart';
+import 'offline_maps_screen.dart';
 import 'sos_screen.dart';
 
 class SOSDashboard extends StatefulWidget {
@@ -116,6 +117,21 @@ class _SOSDashboardState extends State<SOSDashboard> {
               ),
             ],
           ),
+          const SizedBox(height: 16),
+
+          // Offline Maps Card
+          _buildQuickCard(
+            context,
+            'Offline Maps',
+            'Download for Disaster',
+            Icons.map_outlined,
+            const Color(0xFF2196F3),
+            [const Color(0xFF0D47A1), const Color(0xFF1976D2)],
+            () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const OfflineMapsScreen())),
+          ).animate().fadeIn(delay: 200.ms, duration: 300.ms).slideY(
+              begin: 0.15, end: 0, duration: 300.ms, curve: Curves.easeOut),
+
           const SizedBox(height: 24),
 
           // Flashlight Panel
