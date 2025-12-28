@@ -73,23 +73,25 @@ class _MeshChatListScreenState extends ConsumerState<MeshChatListScreen> {
                           .where((m) => m.senderId == peerId)
                           .length;
 
-                      // Hack to find name from ANY connected endpoint that maps to this ID
-                      String displayName = "User ${peerId.substring(0, 4)}";
-                      final endpoints = ref
-                          .read(meshProvider)
-                          .endpointToUserId
-                          .entries
-                          .where((e) => e.value == peerId)
-                          .map((e) => e.key);
+                      // FIX: Use persisted userIdToName map for reliable name resolution
+                      // This works even when peer is offline
+                      String displayName = meshState.userIdToName[peerId] ??
+                          "User ${peerId.length > 4 ? peerId.substring(0, 4) : peerId}";
 
-                      if (endpoints.isNotEmpty) {
-                        final ep = endpoints.first;
-                        if (peerNames.containsKey(ep)) {
-                          displayName = peerNames[ep]!;
+                      // Secondary: check peerNames (active connections) as backup
+                      if (displayName.startsWith("User ")) {
+                        final endpoints = meshState.endpointToUserId.entries
+                            .where((e) => e.value == peerId)
+                            .map((e) => e.key);
+
+                        if (endpoints.isNotEmpty) {
+                          final ep = endpoints.first;
+                          if (peerNames.containsKey(ep)) {
+                            displayName = peerNames[ep]!;
+                          }
+                        } else if (peerNames.containsKey(peerId)) {
+                          displayName = peerNames[peerId]!;
                         }
-                      } else if (peerNames.containsKey(peerId)) {
-                        // Fallback: If peerId is actually an endpoint ID
-                        displayName = peerNames[peerId]!;
                       }
 
                       return ListTile(
