@@ -1,6 +1,6 @@
 {
-    "version": "1.6.2",
-    "build": 22,
-    "release_notes": "🎨 v1.6.2 UI Polish:\n- ✨ Unified Notification Style: Replaced all legacy bottom bars with premium floating toasts.\n- 🧹 Cleaned up UI across Voice Chat, Medical Profile, and SOS screens.",
-    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.6.2/app-release.apk"
+    "version": "1.6.3",
+    "build": 23,
+    "release_notes": "🚀 v1.6.3 UI Polish & Stability:\n- ✨ Premium Floating Notifications everywhere.\n- 🧹 Removed all legacy bottom bars.\n- 🔄 Fresh build with latest UI consistency fixes.",
+    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.6.3/app-release.apk"
 }
