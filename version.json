@@ -1,6 +1,6 @@
 {
-    "version": "1.4.5",
-    "build": 11,
-    "release_notes": "🎨 **UI Polish (v1.4.5)**\n\n- Circular Logo in **Startup Screen** and **AI Chat**.\n- Full Fix for APK Compatibility.\n- (v1.4.3 Features included: Siren, Medical ID).",
-    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.4.5/app-release.apk"
+    "version": "1.5.0",
+    "build": 12,
+    "release_notes": "🎙️ **PTT Voice Chat (v1.5.0)**\n\n- Push-to-Talk voice messages between mesh peers\n- Hold mic button to record, release to send\n- Audio playback with waveform visualization\n- (v1.4.5 Features included: UI Polish, Siren, Medical ID).",
+    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.5.0/app-release.apk"
 }
