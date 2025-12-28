@@ -6,6 +6,7 @@ import '../../data/mesh_provider.dart';
 import '../../../mesh_network/data/voice_service.dart';
 import '../../../mesh_network/domain/voice_message.dart';
 import 'package:uuid/uuid.dart';
+import '../../../../core/services/toast_service.dart';
 
 /// Voice Message Chat Screen (Tap to record, tap to send)
 class VoiceChatScreen extends ConsumerStatefulWidget {
@@ -98,13 +99,8 @@ class _VoiceChatScreenState extends ConsumerState<VoiceChatScreen>
       });
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content:
-                Text('Could not start recording. Check microphone permission.'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        ToastService.showError(
+            'Could not start recording. Check microphone permission.');
       }
     }
   }
@@ -128,12 +124,7 @@ class _VoiceChatScreenState extends ConsumerState<VoiceChatScreen>
     if (result == null) {
       HapticFeedback.lightImpact();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Recording too short (min 1 second)'),
-            backgroundColor: Colors.orange,
-          ),
-        );
+        ToastService.showWarning('Recording too short (min 1 second)');
       }
       return;
     }
@@ -161,14 +152,8 @@ class _VoiceChatScreenState extends ConsumerState<VoiceChatScreen>
     _scrollToBottom();
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content:
-              Text('Voice message sent (${voiceMessage.durationFormatted})'),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 1),
-        ),
-      );
+      ToastService.showSuccess(
+          'Voice message sent (${voiceMessage.durationFormatted})');
     }
   }
 

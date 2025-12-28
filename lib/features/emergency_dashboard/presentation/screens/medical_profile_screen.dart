@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/services/notification_service.dart';
+import '../../../../core/services/toast_service.dart';
 
 class MedicalProfileScreen extends StatefulWidget {
   const MedicalProfileScreen({super.key});
@@ -79,16 +80,7 @@ class _MedicalProfileScreenState extends State<MedicalProfileScreen> {
     }
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Medical ID Updated Successfully',
-              style: TextStyle(color: Colors.white)),
-          backgroundColor: const Color(0xFF00C853),
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
+      ToastService.showSuccess('Medical ID Updated Successfully');
       Navigator.pop(context);
     }
   }

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/services/toast_service.dart';
 
 class SOSScreen extends StatefulWidget {
   const SOSScreen({super.key});
@@ -165,13 +166,7 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
 
   Future<void> _sendSOSToAll() async {
     if (_emergencyContacts.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Add emergency contacts first!'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ToastService.showError('Add emergency contacts first!');
       return;
     }
 
@@ -199,15 +194,11 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
     setState(() => _isSending = false);
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(successCount > 0
-              ? '✅ SOS sent to $successCount contacts!'
-              : '❌ Failed to send. Grant SMS permission.'),
-          backgroundColor: successCount > 0 ? Colors.green : Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      if (successCount > 0) {
+        ToastService.showSuccess('✅ SOS sent to $successCount contacts!');
+      } else {
+        ToastService.showError('❌ Failed to send. Grant SMS permission.');
+      }
     }
   }
 
