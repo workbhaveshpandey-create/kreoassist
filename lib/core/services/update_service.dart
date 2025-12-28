@@ -17,6 +17,14 @@ class UpdateService {
 
   /// Check for updates and show dialog if available
   static Future<void> checkForUpdates(BuildContext context) async {
+    // DEBUG: Show checking status
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text("Checking for updates..."),
+        duration: Duration(seconds: 1),
+      ));
+    }
+
     try {
       final response = await http.get(Uri.parse(_versionUrl)).timeout(
             const Duration(seconds: 10),
@@ -29,6 +37,8 @@ class UpdateService {
         final currentBuild = int.tryParse(packageInfo.buildNumber) ?? 0;
         final remoteBuild = remoteVersion['build'] as int? ?? 0;
 
+        print("DEBUG: Remote Build: $remoteBuild, Current: $currentBuild");
+
         if (remoteBuild > currentBuild) {
           // New version available!
           if (context.mounted) {
@@ -40,11 +50,30 @@ class UpdateService {
               downloadUrl: remoteVersion['download_url'] as String? ?? '',
             );
           }
+        } else {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text("App is up to date (v${packageInfo.version})"),
+              duration: const Duration(seconds: 2),
+            ));
+          }
+        }
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text("Update check failed: HTTP ${response.statusCode}"),
+            backgroundColor: Colors.red,
+          ));
         }
       }
     } catch (e) {
-      // Silently fail - don't interrupt user experience
       debugPrint('Update check failed: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Update error: $e"),
+          backgroundColor: Colors.red,
+        ));
+      }
     }
   }
 
