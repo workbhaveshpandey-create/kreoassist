@@ -68,10 +68,13 @@ class _MeshChatListScreenState extends ConsumerState<MeshChatListScreen> {
                       final isOnline = onlinePeers.contains(peerId) ||
                           connectedEndpoints.contains(peerId);
 
-                      // Unread count
+                      // Unread count (text + voice messages)
                       final unreadCount = incomingMessages
-                          .where((m) => m.senderId == peerId)
-                          .length;
+                              .where((m) => m.senderId == peerId)
+                              .length +
+                          meshState.incomingVoiceMessages
+                              .where((m) => m.senderId == peerId)
+                              .length;
 
                       // FIX: Use persisted userIdToName map for reliable name resolution
                       // This works even when peer is offline

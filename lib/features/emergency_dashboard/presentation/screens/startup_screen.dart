@@ -35,31 +35,23 @@ class _StartupScreenState extends State<StartupScreen> {
   }
 
   Future<void> _checkInitialization() async {
-    // 0. Request Permissions (Robust Check)
+    // 0. Request Permissions with timeout (non-blocking)
+    // This ensures app loads even if WiFi/Bluetooth are disabled
     if (Platform.isAndroid || Platform.isIOS) {
-      // User requested "always ask" / ensure access for nearby search
-      Map<Permission, PermissionStatus> statuses = await [
-        Permission.location, // Required for BLE/WiFi on older Android
-        Permission.bluetooth,
-        Permission.bluetoothScan,
-        Permission.bluetoothAdvertise,
-        Permission.bluetoothConnect,
-        Permission.nearbyWifiDevices, // Critical for Wifi Direct / Local Only
-        Permission.microphone, // Added for STT feature
-        Permission.sms, // For emergency SMS
-        Permission.phone, // For emergency calls
-        Permission
-            .notification, // For persistent background scanning notification
-      ].request();
-
-      bool allGranted = statuses.values.every((status) => status.isGranted);
-      if (!allGranted) {
-        print(
-            "Warning: Some permissions denied: ${statuses.entries.where((e) => !e.value.isGranted).map((e) => e.key).toList()}");
+      try {
+        await Future.wait([
+          _requestPermissionsWithTimeout(),
+          _checkAndEnableRadios(),
+        ]).timeout(
+          const Duration(seconds: 8),
+          onTimeout: () {
+            print('⚠️ Permission/radio check timed out, proceeding anyway');
+            return [];
+          },
+        );
+      } catch (e) {
+        print('⚠️ Permission check error: $e, proceeding anyway');
       }
-
-      // Check and prompt to enable Bluetooth & WiFi
-      await _checkAndEnableRadios();
     } else {
       print("Skipping permissions on Desktop/Web");
     }
@@ -135,6 +127,33 @@ class _StartupScreenState extends State<StartupScreen> {
       }
       return true;
     });
+  }
+
+  /// Request permissions with timeout and error handling
+  Future<void> _requestPermissionsWithTimeout() async {
+    try {
+      Map<Permission, PermissionStatus> statuses = await [
+        Permission.location, // Required for BLE/WiFi on older Android
+        Permission.bluetooth,
+        Permission.bluetoothScan,
+        Permission.bluetoothAdvertise,
+        Permission.bluetoothConnect,
+        Permission.nearbyWifiDevices, // Critical for Wifi Direct / Local Only
+        Permission.microphone, // Added for STT feature
+        Permission.sms, // For emergency SMS
+        Permission.phone, // For emergency calls
+        Permission
+            .notification, // For persistent background scanning notification
+      ].request();
+
+      bool allGranted = statuses.values.every((status) => status.isGranted);
+      if (!allGranted) {
+        print(
+            "Warning: Some permissions denied: ${statuses.entries.where((e) => !e.value.isGranted).map((e) => e.key).toList()}");
+      }
+    } catch (e) {
+      print('⚠️ Permission request error: $e');
+    }
   }
 
   Future<void> _checkAndEnableRadios() async {

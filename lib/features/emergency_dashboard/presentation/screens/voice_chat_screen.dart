@@ -216,8 +216,14 @@ class _VoiceChatScreenState extends ConsumerState<VoiceChatScreen>
         .where((m) => m.senderId == widget.peerId)
         .toList();
 
+    // FIX: Filter out any incoming messages that we already have in _sentMessages
+    // This prevents duplicates when our own sent message echoes back
+    final sentIds = _sentMessages.map((m) => m.messageId).toSet();
+    final filteredIncoming =
+        incomingVoices.where((m) => !sentIds.contains(m.messageId)).toList();
+
     // Combine and sort all messages
-    final allMessages = [...incomingVoices, ..._sentMessages]
+    final allMessages = [...filteredIncoming, ..._sentMessages]
       ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
     return Scaffold(

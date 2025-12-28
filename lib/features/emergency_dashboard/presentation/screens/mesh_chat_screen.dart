@@ -48,6 +48,14 @@ class _MeshChatScreenState extends ConsumerState<MeshChatScreen> {
   void initState() {
     super.initState();
     _loadChat();
+    // FIX: Mark existing messages as read immediately when chat opens
+    // This ensures the unread counter resets when viewing the chat
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(meshProvider.notifier).consumeMessagesForPeer(widget.peerId);
+      ref
+          .read(meshProvider.notifier)
+          .consumeVoiceMessagesForPeer(widget.peerId);
+    });
   }
 
   @override
@@ -361,6 +369,9 @@ class _MeshChatScreenState extends ConsumerState<MeshChatScreen> {
         final newVoices =
             next.where((m) => m.senderId == widget.peerId).toList();
         for (final voice in newVoices) {
+          // FIX: Skip if we already have this message (prevent duplicates)
+          if (_items.any((item) => item.id == voice.messageId)) continue;
+
           final item = _ChatItem(
             id: voice.messageId,
             isVoice: true,

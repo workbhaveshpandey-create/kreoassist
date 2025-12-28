@@ -650,11 +650,16 @@ class _MeshScreenState extends ConsumerState<MeshScreen>
                 // Use stable onlinePeers set for accurate online status
                 final isOnline = onlinePeers.contains(peerId);
 
-                // Get unread count
+                // Get unread count (text + voice messages)
                 final incomingMessages =
                     ref.watch(meshProvider.select((s) => s.incomingMessages));
+                final incomingVoiceMessages = ref
+                    .watch(meshProvider.select((s) => s.incomingVoiceMessages));
                 final unreadCount =
-                    incomingMessages.where((m) => m.senderId == peerId).length;
+                    incomingMessages.where((m) => m.senderId == peerId).length +
+                        incomingVoiceMessages
+                            .where((m) => m.senderId == peerId)
+                            .length;
 
                 // Resolve Name - prefer state's userIdToName, then cached, then Unknown
                 final displayName = meshState.userIdToName[peerId] ??
