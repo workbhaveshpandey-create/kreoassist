@@ -1,6 +1,6 @@
 {
-    "version": "1.6.8",
-    "build": 28,
-    "release_notes": "� v1.6.8 Release:\\n- ✅ Fixed update notifications with SnackBar.\\n- 💬 Mesh chat messages visible for all peers.\\n- 👤 Peer names persist when offline.\\n- 📡 Improved update detection with cache-bust.",
-    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.6.8/app-release.apk"
+    "version": "1.6.9",
+    "build": 29,
+    "release_notes": "🔔 v1.6.9 Update UX Improvements:\n- ✅ Silent update checks (no annoying notifications).\n- 📍 Top-positioned floating notifications.\n- 💬 Mesh chat fixes for all peers.",
+    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.6.9/app-release.apk"
 }

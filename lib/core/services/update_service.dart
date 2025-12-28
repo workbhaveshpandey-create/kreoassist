@@ -17,10 +17,7 @@ class UpdateService {
 
   /// Check for updates and show dialog if available
   static Future<void> checkForUpdates(BuildContext context) async {
-    // DEBUG: Show checking status using direct SnackBar (more reliable than ToastService)
-    if (context.mounted) {
-      _showSnackBar(context, "Checking for updates...", Colors.blue);
-    }
+    // Silent check - only show notification if update is available or error occurs
 
     try {
       // Add cache-bust parameter to prevent stale cached responses
@@ -55,10 +52,8 @@ class UpdateService {
             );
           }
         } else {
-          if (context.mounted) {
-            _showSnackBar(context,
-                "App is up to date (v${packageInfo.version})", Colors.green);
-          }
+          // Silent - app is up to date, no notification needed
+          debugPrint("App is up to date (v${packageInfo.version})");
         }
       } else {
         if (context.mounted) {
@@ -74,17 +69,97 @@ class UpdateService {
     }
   }
 
-  /// Helper to show SnackBar directly (more reliable than ToastService)
+  /// Helper to show floating notification at TOP (more visible than bottom SnackBar)
+  static OverlayEntry? _overlayEntry;
+
   static void _showSnackBar(BuildContext context, String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: color,
-        duration: const Duration(seconds: 3),
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(16),
+    // Remove existing overlay if any
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+
+    final overlay = Overlay.of(context);
+
+    _overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: MediaQuery.of(context).padding.top + 16,
+        left: 16,
+        right: 16,
+        child: Material(
+          color: Colors.transparent,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutBack,
+            builder: (context, value, child) => Opacity(
+              opacity: value,
+              child: Transform.translate(
+                offset: Offset(0, -20 * (1 - value)),
+                child: child,
+              ),
+            ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E1E1E),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: color.withOpacity(0.5)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                  BoxShadow(
+                    color: color.withOpacity(0.2),
+                    blurRadius: 16,
+                    spreadRadius: -2,
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      color == Colors.green
+                          ? Icons.check_circle
+                          : color == Colors.red
+                              ? Icons.error
+                              : Icons.info,
+                      color: color,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      message,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
+
+    overlay.insert(_overlayEntry!);
+
+    // Auto-dismiss after 4 seconds
+    Future.delayed(const Duration(seconds: 4), () {
+      _overlayEntry?.remove();
+      _overlayEntry = null;
+    });
   }
 
   /// Check for updates in background (Headless)
