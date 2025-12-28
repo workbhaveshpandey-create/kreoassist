@@ -11,6 +11,7 @@ import '../../data/mesh_provider.dart';
 import '../../../mesh_network/data/voice_service.dart';
 import '../../../mesh_network/domain/voice_message.dart';
 import 'package:uuid/uuid.dart';
+import '../../../../core/services/toast_service.dart';
 
 class MeshChatScreen extends ConsumerStatefulWidget {
   final String peerId;
@@ -152,6 +153,13 @@ class _MeshChatScreenState extends ConsumerState<MeshChatScreen> {
         'timestamp': item.timestamp.toIso8601String(),
       }));
       await prefs.setStringList(key, list);
+
+      // FIX: Ensure this peer appears in the "Chat List" (which relies on 'mesh_chat_...' key)
+      // Even if we don't store text, the key must exist for the list screen to find it.
+      final mainKey = 'mesh_chat_${widget.peerId}';
+      if (!prefs.containsKey(mainKey)) {
+        await prefs.setStringList(mainKey, []);
+      }
     } catch (e) {
       print('Error saving voice: $e');
     }
@@ -311,9 +319,7 @@ class _MeshChatScreenState extends ConsumerState<MeshChatScreen> {
 
   void _showError(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: Colors.orange),
-    );
+    ToastService.showWarning(msg);
   }
 
   String _formatDuration(int ms) {

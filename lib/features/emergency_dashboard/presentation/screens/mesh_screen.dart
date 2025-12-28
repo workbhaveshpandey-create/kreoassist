@@ -10,6 +10,7 @@ import '../../../mesh_network/domain/mesh_network_service.dart';
 import '../../data/mesh_provider.dart';
 import 'mesh_chat_screen.dart';
 import 'mesh_chat_list_screen.dart';
+import '../../../../core/services/toast_service.dart';
 
 class MeshScreen extends ConsumerStatefulWidget {
   final String username;
@@ -25,10 +26,6 @@ class _MeshScreenState extends ConsumerState<MeshScreen>
   late AnimationController _radarController;
   List<String> _recentChatPeers = [];
   String? _openedPeerId; // Track open chat
-
-  // Custom Feedback Toast State
-  String? _feedbackMessage;
-  Timer? _feedbackTimer;
 
   // Cache for peer names (UserId -> Name)
   Map<String, String> _cachedPeerNames = {};
@@ -70,13 +67,8 @@ class _MeshScreenState extends ConsumerState<MeshScreen>
   }
 
   void _showFeedback(String message) {
-    setState(() {
-      _feedbackMessage = message;
-    });
-    _feedbackTimer?.cancel();
-    _feedbackTimer = Timer(const Duration(seconds: 3), () {
-      if (mounted) setState(() => _feedbackMessage = null);
-    });
+    ToastService.showInfo(message);
+    // Original overlay removed as ToastService handles it better
   }
 
   Future<void> _loadCachedNames() async {
@@ -188,12 +180,10 @@ class _MeshScreenState extends ConsumerState<MeshScreen>
         messagesByPeer.putIfAbsent(msg.senderId, () => []).add(msg);
       }
 
-      final prefs = await SharedPreferences.getInstance();
       bool listChanged = false;
 
       for (final entry in messagesByPeer.entries) {
         final peerId = entry.key;
-        final msgs = entry.value;
 
         // 1. Add peer to recent list if missing
         if (!_recentChatPeers.contains(peerId)) {
@@ -206,20 +196,9 @@ class _MeshScreenState extends ConsumerState<MeshScreen>
           listChanged = true;
         }
 
-        // 2. Persist messages
-        final key = 'mesh_chat_$peerId';
-        final history = prefs.getStringList(key) ?? [];
-        for (final msg in msgs) {
-          final formatted = "${msg.senderId}: ${msg.message}";
-          history.add(formatted);
-        }
-        await prefs.setStringList(key, history);
-
-        // 3. DO NOT CLEAR HERE.
-        // Clearing removes the badge. ChatScreen will clear (consume) when opened.
+        // Persistence is now handled by MeshProvider!
       }
 
-      if (listChanged) setState(() {});
       if (listChanged) setState(() {});
     });
 
@@ -268,7 +247,25 @@ class _MeshScreenState extends ConsumerState<MeshScreen>
                         child: _RadarWithPeers(
                           controller: _radarController,
                           color: _getRadarColor(isAdvertising, isDiscovering),
-                          peers: connectedEndpoints,
+                          // FIX: Dedup peers by UserId
+                          peers: () {
+                            final uniqueEndpoints = <String>[];
+                            final seenUserIds = <String>{};
+
+                            for (final ep in connectedEndpoints) {
+                              final userId = meshState.endpointToUserId[ep];
+                              if (userId != null) {
+                                if (!seenUserIds.contains(userId)) {
+                                  seenUserIds.add(userId);
+                                  uniqueEndpoints.add(ep);
+                                }
+                              } else {
+                                // Unknown user, show as separate dot
+                                uniqueEndpoints.add(ep);
+                              }
+                            }
+                            return uniqueEndpoints;
+                          }(),
                           peerNames: meshState.peerNames,
                           isActive: isActive,
                           onPeerTap: (endpoint) {
@@ -367,24 +364,9 @@ class _MeshScreenState extends ConsumerState<MeshScreen>
                         ),
                       ),
 
-                      // Feedback Toast
-                      if (_feedbackMessage != null)
-                        Positioned(
-                          bottom: 12,
-                          left: 12,
-                          right: 12,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                                color: Colors.black87,
-                                borderRadius: BorderRadius.circular(8)),
-                            child: Text(_feedbackMessage!,
-                                style: const TextStyle(
-                                    color: Colors.white, fontSize: 13),
-                                textAlign: TextAlign.center),
-                          ).animate().fade().slideY(begin: 0.5, end: 0),
-                        ),
+                      // Feedback Toast - REPLACED BY ToastService
+                      // if (_feedbackMessage != null)
+                      //   Positioned(...)
                     ],
                   ),
                 ),

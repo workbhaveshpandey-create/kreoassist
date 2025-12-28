@@ -4,9 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../../../../core/services/toast_service.dart';
 import '../../../ai_assistant/data/local_ai_service_impl.dart';
 import '../../../ai_assistant/data/rag_manager_impl.dart';
-import '../../../../core/services/update_service.dart';
+// import '../../../../core/services/update_service.dart'; // Moved to Home
 import 'home_screen.dart';
 
 class StartupScreen extends StatefulWidget {
@@ -93,10 +94,10 @@ class _StartupScreenState extends State<StartupScreen> {
     await rag.addDocument("CPR Guide",
         "Place the heel of your hand on the centre of the person's chest, then place the other hand on top and press down by 5 to 6cm (2 to 2.5 inches) at a steady rate of 100 to 120 compressions a minute.");
 
-    // 3. Check for Updates (Immediate)
-    if (mounted) {
-      await UpdateService.checkForUpdates(context);
-    }
+    // 3. Check for Updates (Moved to HomeScreen for background check)
+    // if (mounted) {
+    //   await UpdateService.checkForUpdates(context);
+    // }
 
     // 4. Check AI Model
     bool exists = await _aiService.isModelDownloaded;
@@ -143,13 +144,11 @@ class _StartupScreenState extends State<StartupScreen> {
 
     // Show non-blocking prompt if radios are off
     if (!btEnabled && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("For Mesh Network, please enable Bluetooth & WiFi"),
-          backgroundColor: Color(0xFFFF6B35),
-          duration: Duration(seconds: 4),
-        ),
-      );
+      // Show non-blocking prompt if radios are off
+      if (!btEnabled && mounted) {
+        ToastService.showWarning(
+            "Please enable Bluetooth & WiFi for Mesh Network");
+      }
     }
   }
 

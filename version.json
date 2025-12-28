@@ -1,6 +1,6 @@
 {
-    "version": "1.5.9",
-    "build": 19,
-    "release_notes": "🎉 v1.5.9 Verification Release:\n- Update System Fixed & Verified\n- Ready for testing on all devices.",
-    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.5.9/app-release.apk"
+    "version": "1.6.0",
+    "build": 20,
+    "release_notes": "🚀 v1.6.0 Major Update:\n- ✨ Premium Floating Notifications\n- 🔄 Reliable Background Message Persistence\n- ⚡ Instant App Startup (Background Updates)\n- 🐛 Mesh Stability Fixes",
+    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.6.0/app-release.apk"
 }

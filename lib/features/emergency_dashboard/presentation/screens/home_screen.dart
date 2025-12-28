@@ -9,6 +9,7 @@ import '../../../../features/emergency_dashboard/presentation/screens/mesh_scree
 import '../../../../features/emergency_dashboard/presentation/screens/sos_dashboard.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/services/update_service.dart';
+import '../../../../core/services/toast_service.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   final String username;
@@ -195,22 +196,11 @@ class _SettingsSheetState extends ConsumerState<SettingsSheet> {
       await UpdateService.checkForUpdates(context);
       // If no update dialog was shown, show "up to date" feedback
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("✅ You're using the latest version!"),
-            backgroundColor: Color(0xFF4CAF50),
-            duration: Duration(seconds: 2),
-          ),
-        );
+        ToastService.showSuccess("You're using the latest version!");
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Failed to check for updates: $e"),
-            backgroundColor: Colors.red,
-          ),
-        );
+        ToastService.showError("Failed to check for updates: $e");
       }
     } finally {
       if (mounted) {

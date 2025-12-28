@@ -8,6 +8,10 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/services/notification_service.dart';
 import 'package:uuid/uuid.dart'; // For unique packet IDs
 import '../../mesh_network/domain/voice_message.dart';
+import 'dart:convert';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import '../../../../core/services/toast_service.dart';
 
 // Emergency Status Types
 enum EmergencyStatus {
@@ -304,42 +308,67 @@ class MeshNotifier extends StateNotifier<MeshState> {
             body: 'Connected to a peer. Exchanging identities...',
           );
         }
+        // Immediate update for connection
+        _updateConnectionState(status);
+      } else if (status == MeshConnectionStatus.disconnected) {
+        // DEBOUNCE DISCONNECT: Wait 2 seconds before verifying if we are truly offline
+        // This prevents "flickering" when switching between peers or temporary drops
+        Future.delayed(const Duration(seconds: 2), () {
+          // Check if we are still disconnected after delay
+          if (_meshService.connectedEndpoints.isEmpty) {
+            _updateConnectionState(MeshConnectionStatus.disconnected);
+          }
+        });
+      } else {
+        // Advertising / Discovering -> Immediate
+        _updateConnectionState(status);
       }
-      state = state.copyWith(status: status);
-      state =
-          state.copyWith(connectedEndpoints: _meshService.connectedEndpoints);
-
-      // Update online status based on current connections
-      final connected = _meshService.connectedEndpoints;
-
-      // 1. Update endpoint caches (these ARE transient)
-      _endpointToUserId.removeWhere((k, v) => !connected.contains(k));
-      _userIdToEndpoint.removeWhere((k, v) => !connected.contains(v));
-
-      // 2. Update onlinePeers based on current endpoint→userId mappings
-      // DO NOT clear userIdToName - that's our persistence layer!
-      final currentOnlinePeers = <String>{};
-      for (final endpoint in connected) {
-        final userId = _endpointToUserId[endpoint];
-        if (userId != null) {
-          currentOnlinePeers.add(userId);
-        }
-      }
-
-      // 3. Update state - only change endpoint-based maps, preserve userId maps
-      final newEndpointMap = Map<String, String>.from(state.endpointToUserId);
-      newEndpointMap.removeWhere((k, v) => !connected.contains(k));
-
-      final newPeerNames = Map<String, String>.from(state.peerNames);
-      newPeerNames.removeWhere((k, v) => !connected.contains(k));
-
-      state = state.copyWith(
-        endpointToUserId: newEndpointMap,
-        peerNames: newPeerNames,
-        onlinePeers: currentOnlinePeers,
-        // userIdToName is NOT cleared - it persists!
-      );
     });
+
+    _payloadSub = _meshService.payloadStream.listen((data) {
+      // Support both 'senderId' (legacy) and 'originId' (new packet format)
+      final senderEndpoint =
+          (data['senderId'] ?? data['originId'] ?? 'unknown') as String;
+
+      // 1. Packet Processing & Relaying (Multi-Hop)
+      _processIncomingPacket(data, senderEndpoint);
+    });
+  }
+
+  void _updateConnectionState(MeshConnectionStatus status) {
+    state = state.copyWith(status: status);
+    state = state.copyWith(connectedEndpoints: _meshService.connectedEndpoints);
+
+    // Update online status based on current connections
+    final connected = _meshService.connectedEndpoints;
+
+    // 1. Update endpoint caches (these ARE transient)
+    _endpointToUserId.removeWhere((k, v) => !connected.contains(k));
+    _userIdToEndpoint.removeWhere((k, v) => !connected.contains(v));
+
+    // 2. Update onlinePeers based on current endpoint→userId mappings
+    // DO NOT clear userIdToName - that's our persistence layer!
+    final currentOnlinePeers = <String>{};
+    for (final endpoint in connected) {
+      final userId = _endpointToUserId[endpoint];
+      if (userId != null) {
+        currentOnlinePeers.add(userId);
+      }
+    }
+
+    // 3. Update state - only change endpoint-based maps, preserve userId maps
+    final newEndpointMap = Map<String, String>.from(state.endpointToUserId);
+    newEndpointMap.removeWhere((k, v) => !connected.contains(k));
+
+    final newPeerNames = Map<String, String>.from(state.peerNames);
+    newPeerNames.removeWhere((k, v) => !connected.contains(k));
+
+    state = state.copyWith(
+      endpointToUserId: newEndpointMap,
+      peerNames: newPeerNames,
+      onlinePeers: currentOnlinePeers,
+      // userIdToName is NOT cleared - it persists!
+    );
 
     _payloadSub = _meshService.payloadStream.listen((data) {
       // Support both 'senderId' (legacy) and 'originId' (new packet format)
@@ -476,6 +505,13 @@ class MeshNotifier extends StateNotifier<MeshState> {
           incomingVoiceMessages: [...state.incomingVoiceMessages, voiceMessage],
         );
 
+        // PERSIST IMMEDIATELY
+        _persistVoiceMessage(voiceMessage);
+
+        // Toast Notification (Foreground)
+        ToastService.showInfo('🎙️ from $peerName');
+
+        // System Notification (Background)
         _notificationService.showNotification(
           id: 4,
           title: '🎙️ Voice from $peerName',
@@ -509,6 +545,13 @@ class MeshNotifier extends StateNotifier<MeshState> {
         incomingMessages: [...state.incomingMessages, newMessage],
       );
 
+      // PERSIST IMMEDIATELY
+      _persistMessage(newMessage);
+
+      // Toast Notification (Foreground)
+      ToastService.showInfo('$peerName: ${newMessage.message}');
+
+      // System Notification (Background)
       _notificationService.showNotification(
         id: 2,
         title: 'Message from $peerName',
@@ -691,6 +734,64 @@ class MeshNotifier extends StateNotifier<MeshState> {
         state.incomingVoiceMessages.where((m) => m.senderId == peerId).toList();
     clearVoiceMessagesFromPeer(peerId);
     return messages;
+  }
+
+  // --- Persistence Helpers ---
+  Future<void> _persistMessage(MeshMessage msg) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'chat_text_${msg.senderId}';
+      final list = prefs.getStringList(key) ?? [];
+
+      // Format for ChatScreen compatibility
+      final formatted = "${msg.senderName}: ${msg.message}";
+      list.add(formatted);
+      await prefs.setStringList(key, list);
+
+      // Ensure visible in Chat List
+      final mainKey = 'mesh_chat_${msg.senderId}';
+      if (!prefs.containsKey(mainKey)) {
+        await prefs.setStringList(mainKey, []);
+      }
+    } catch (e) {
+      print("Error persisting text: $e");
+    }
+  }
+
+  Future<void> _persistVoiceMessage(VoiceMessage voice) async {
+    try {
+      // 1. Save Audio File
+      final appDir = await getApplicationDocumentsDirectory();
+      final voiceDir = Directory('${appDir.path}/voice_messages');
+      if (!await voiceDir.exists()) {
+        await voiceDir.create(recursive: true);
+      }
+
+      final file = File('${voiceDir.path}/${voice.messageId}.m4a');
+      // Decode base64 to bytes
+      final bytes = base64Decode(voice.audioBase64);
+      await file.writeAsBytes(bytes);
+
+      // 2. Save Metadata
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'chat_voice_${voice.senderId}';
+      final list = prefs.getStringList(key) ?? [];
+      list.add(jsonEncode({
+        'id': voice.messageId,
+        'isMe': false, // Received
+        'durationMs': voice.durationMs,
+        'timestamp': voice.timestamp.toIso8601String(),
+      }));
+      await prefs.setStringList(key, list);
+
+      // 3. Ensure visible in Chat List
+      final mainKey = 'mesh_chat_${voice.senderId}';
+      if (!prefs.containsKey(mainKey)) {
+        await prefs.setStringList(mainKey, []);
+      }
+    } catch (e) {
+      print("Error persisting voice: $e");
+    }
   }
 
   @override
