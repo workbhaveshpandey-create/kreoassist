@@ -7,9 +7,9 @@ import 'package:record/record.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-/// Voice recording and playback service for PTT functionality
+/// Voice recording and playback service for voice messages
 class VoiceService {
-  final AudioRecorder _recorder = AudioRecorder();
+  AudioRecorder? _recorder;
   final AudioPlayer _player = AudioPlayer();
 
   String? _currentRecordingPath;
@@ -40,42 +40,53 @@ class VoiceService {
   /// Request microphone permission
   Future<bool> requestPermission() async {
     final status = await Permission.microphone.request();
+    print('🎤 Microphone permission status: $status');
     return status.isGranted;
   }
 
   /// Check if microphone permission is granted
   Future<bool> hasPermission() async {
-    return await Permission.microphone.isGranted;
+    final status = await Permission.microphone.status;
+    print('🎤 Current microphone permission: $status');
+    return status.isGranted;
   }
 
-  /// Start PTT recording
+  /// Start recording
   /// Returns true if recording started successfully
   Future<bool> startRecording() async {
-    if (_isRecording) return false;
-
-    // Check permission
-    if (!await hasPermission()) {
-      final granted = await requestPermission();
-      if (!granted) return false;
-    }
-
-    // Check if recorder is available
-    if (!await _recorder.hasPermission()) {
+    if (_isRecording) {
+      print('⚠️ Already recording');
       return false;
     }
 
     try {
+      // Check/request permission
+      if (!await hasPermission()) {
+        print('🎤 Requesting microphone permission...');
+        final granted = await requestPermission();
+        if (!granted) {
+          print('❌ Microphone permission denied');
+          return false;
+        }
+      }
+
+      // Create new recorder instance
+      _recorder?.dispose();
+      _recorder = AudioRecorder();
+
+      // Get temp directory
       final dir = await getTemporaryDirectory();
       _currentRecordingPath =
-          '${dir.path}/ptt_${DateTime.now().millisecondsSinceEpoch}.m4a';
+          '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      print('📁 Recording path: $_currentRecordingPath');
 
-      // Configure for voice: AAC, 16kHz, mono
-      await _recorder.start(
+      // Start recording with AAC encoder
+      await _recorder!.start(
         const RecordConfig(
           encoder: AudioEncoder.aacLc,
-          sampleRate: 16000,
-          bitRate: 64000,
-          numChannels: 1,
+          sampleRate: 44100, // Higher quality
+          bitRate: 128000, // Better bitrate
+          numChannels: 1, // Mono
         ),
         path: _currentRecordingPath!,
       );
@@ -84,52 +95,84 @@ class VoiceService {
       _isRecording = true;
       _isRecordingController.add(true);
 
+      print('✅ Recording started');
       return true;
-    } catch (e) {
-      print('Error starting recording: $e');
+    } catch (e, stack) {
+      print('❌ Error starting recording: $e');
+      print('Stack: $stack');
+      _isRecording = false;
+      _isRecordingController.add(false);
       return false;
     }
   }
 
   /// Stop recording and return the audio bytes with duration
-  /// Returns null if no recording was in progress
+  /// Returns null if no recording was in progress or if failed
   Future<({Uint8List bytes, int durationMs})?> stopRecording() async {
-    if (!_isRecording || _currentRecordingPath == null) return null;
+    if (!_isRecording || _currentRecordingPath == null || _recorder == null) {
+      print('⚠️ No active recording to stop');
+      return null;
+    }
 
     try {
-      final path = await _recorder.stop();
+      print('🛑 Stopping recording...');
+      final path = await _recorder!.stop();
       _isRecording = false;
       _isRecordingController.add(false);
 
-      if (path == null) return null;
+      print('📁 Recorded file path: $path');
+
+      if (path == null || path.isEmpty) {
+        print('❌ Recording returned null path');
+        return null;
+      }
 
       // Calculate duration
       final durationMs = _recordingStartTime != null
           ? DateTime.now().difference(_recordingStartTime!).inMilliseconds
           : 0;
+      print('⏱️ Recording duration: ${durationMs}ms');
 
       // Read the recorded file
       final file = File(path);
-      if (!await file.exists()) return null;
+      if (!await file.exists()) {
+        print('❌ Recording file does not exist: $path');
+        return null;
+      }
+
+      final fileSize = await file.length();
+      print('📦 File size: $fileSize bytes');
+
+      if (fileSize < 100) {
+        print('❌ Recording file too small');
+        await file.delete();
+        _currentRecordingPath = null;
+        _recordingStartTime = null;
+        return null;
+      }
 
       final bytes = await file.readAsBytes();
+      print('✅ Read ${bytes.length} bytes from recording');
 
       // Clean up temp file
       await file.delete();
       _currentRecordingPath = null;
       _recordingStartTime = null;
 
-      // Minimum valid recording (500ms)
-      if (durationMs < 500) {
-        print('Recording too short: ${durationMs}ms');
+      // Minimum valid recording (1 second)
+      if (durationMs < 1000) {
+        print('⚠️ Recording too short: ${durationMs}ms (min 1000ms)');
         return null;
       }
 
       return (bytes: bytes, durationMs: durationMs);
-    } catch (e) {
-      print('Error stopping recording: $e');
+    } catch (e, stack) {
+      print('❌ Error stopping recording: $e');
+      print('Stack: $stack');
       _isRecording = false;
       _isRecordingController.add(false);
+      _currentRecordingPath = null;
+      _recordingStartTime = null;
       return null;
     }
   }
@@ -139,7 +182,8 @@ class VoiceService {
     if (!_isRecording) return;
 
     try {
-      await _recorder.stop();
+      print('🚫 Cancelling recording...');
+      await _recorder?.stop();
       _isRecording = false;
       _isRecordingController.add(false);
 
@@ -148,12 +192,13 @@ class VoiceService {
         final file = File(_currentRecordingPath!);
         if (await file.exists()) {
           await file.delete();
+          print('🗑️ Deleted temp recording file');
         }
       }
       _currentRecordingPath = null;
       _recordingStartTime = null;
     } catch (e) {
-      print('Error cancelling recording: $e');
+      print('❌ Error cancelling recording: $e');
     }
   }
 
@@ -170,6 +215,7 @@ class VoiceService {
           '${dir.path}/play_${DateTime.now().millisecondsSinceEpoch}.m4a';
       final file = File(tempPath);
       await file.writeAsBytes(bytes);
+      print('▶️ Playing audio from: $tempPath (${bytes.length} bytes)');
 
       _isPlaying = true;
       _isPlayingController.add(true);
@@ -183,7 +229,7 @@ class VoiceService {
         } catch (_) {}
       });
     } catch (e) {
-      print('Error playing audio: $e');
+      print('❌ Error playing audio: $e');
       _isPlaying = false;
       _isPlayingController.add(false);
     }
@@ -196,13 +242,13 @@ class VoiceService {
       _isPlaying = false;
       _isPlayingController.add(false);
     } catch (e) {
-      print('Error stopping playback: $e');
+      print('❌ Error stopping playback: $e');
     }
   }
 
   /// Dispose resources
   void dispose() {
-    _recorder.dispose();
+    _recorder?.dispose();
     _player.dispose();
     _isRecordingController.close();
     _isPlayingController.close();

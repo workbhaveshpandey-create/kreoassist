@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,7 +7,7 @@ import '../../../mesh_network/data/voice_service.dart';
 import '../../../mesh_network/domain/voice_message.dart';
 import 'package:uuid/uuid.dart';
 
-/// Push-to-Talk Voice Chat Screen
+/// Voice Message Chat Screen (Tap to record, tap to send)
 class VoiceChatScreen extends ConsumerStatefulWidget {
   final String peerId;
   final String peerName;
@@ -29,14 +30,20 @@ class _VoiceChatScreenState extends ConsumerState<VoiceChatScreen>
   String? _currentlyPlayingId;
   final _uuid = const Uuid();
 
+  // Recording timer
+  Timer? _recordingTimer;
+  int _recordingSeconds = 0;
+  static const int _maxRecordingSeconds = 60;
+
   // Sent messages for UI (locally tracked)
   final List<VoiceMessage> _sentMessages = [];
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _pulseController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 800),
       vsync: this,
     );
   }
@@ -44,7 +51,30 @@ class _VoiceChatScreenState extends ConsumerState<VoiceChatScreen>
   @override
   void dispose() {
     _pulseController.dispose();
+    _recordingTimer?.cancel();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  /// Toggle recording - tap to start, tap again to send
+  Future<void> _toggleRecording() async {
+    if (_isRecording) {
+      await _stopRecordingAndSend();
+    } else {
+      await _startRecording();
+    }
   }
 
   Future<void> _startRecording() async {
@@ -53,8 +83,19 @@ class _VoiceChatScreenState extends ConsumerState<VoiceChatScreen>
 
     if (started) {
       HapticFeedback.mediumImpact();
-      setState(() => _isRecording = true);
+      setState(() {
+        _isRecording = true;
+        _recordingSeconds = 0;
+      });
       _pulseController.repeat(reverse: true);
+
+      // Start timer
+      _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        setState(() => _recordingSeconds++);
+        if (_recordingSeconds >= _maxRecordingSeconds) {
+          _stopRecordingAndSend();
+        }
+      });
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -71,18 +112,25 @@ class _VoiceChatScreenState extends ConsumerState<VoiceChatScreen>
   Future<void> _stopRecordingAndSend() async {
     if (!_isRecording) return;
 
+    _recordingTimer?.cancel();
+    _recordingTimer = null;
+
     final voiceService = ref.read(voiceServiceProvider);
     final result = await voiceService.stopRecording();
 
     _pulseController.stop();
-    setState(() => _isRecording = false);
+    _pulseController.reset();
+    setState(() {
+      _isRecording = false;
+      _recordingSeconds = 0;
+    });
 
     if (result == null) {
       HapticFeedback.lightImpact();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Recording too short or failed'),
+            content: Text('Recording too short (min 1 second)'),
             backgroundColor: Colors.orange,
           ),
         );
@@ -110,16 +158,35 @@ class _VoiceChatScreenState extends ConsumerState<VoiceChatScreen>
     setState(() {
       _sentMessages.add(voiceMessage);
     });
+    _scrollToBottom();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              Text('Voice message sent (${voiceMessage.durationFormatted})'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 1),
+        ),
+      );
+    }
   }
 
   Future<void> _cancelRecording() async {
     if (!_isRecording) return;
 
+    _recordingTimer?.cancel();
+    _recordingTimer = null;
+
     final voiceService = ref.read(voiceServiceProvider);
     await voiceService.cancelRecording();
 
     _pulseController.stop();
-    setState(() => _isRecording = false);
+    _pulseController.reset();
+    setState(() {
+      _isRecording = false;
+      _recordingSeconds = 0;
+    });
     HapticFeedback.lightImpact();
   }
 
@@ -149,6 +216,12 @@ class _VoiceChatScreenState extends ConsumerState<VoiceChatScreen>
         _currentlyPlayingId = null;
       });
     }
+  }
+
+  String _formatRecordingTime(int seconds) {
+    final mins = seconds ~/ 60;
+    final secs = seconds % 60;
+    return '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -255,7 +328,7 @@ class _VoiceChatScreenState extends ConsumerState<VoiceChatScreen>
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Hold the microphone button to record',
+                          'Tap the mic button to record',
                           style: TextStyle(
                             color: Colors.grey[600],
                             fontSize: 14,
@@ -265,6 +338,7 @@ class _VoiceChatScreenState extends ConsumerState<VoiceChatScreen>
                     ),
                   )
                 : ListView.builder(
+                    controller: _scrollController,
                     padding:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     itemCount: allMessages.length,
@@ -281,22 +355,23 @@ class _VoiceChatScreenState extends ConsumerState<VoiceChatScreen>
                   ),
           ),
 
-          // Recording indicator
+          // Recording indicator bar
           if (_isRecording)
             Container(
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              color: Colors.red.withOpacity(0.15),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  // Pulsing recording dot
                   AnimatedBuilder(
                     animation: _pulseController,
                     builder: (context, child) {
                       return Container(
-                        width: 12 + (_pulseController.value * 4),
-                        height: 12 + (_pulseController.value * 4),
+                        width: 12,
+                        height: 12,
                         decoration: BoxDecoration(
                           color: Colors.red.withOpacity(
-                              0.8 + (_pulseController.value * 0.2)),
+                              0.6 + (_pulseController.value * 0.4)),
                           shape: BoxShape.circle,
                         ),
                       );
@@ -304,20 +379,28 @@ class _VoiceChatScreenState extends ConsumerState<VoiceChatScreen>
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    'Recording... Release to send',
-                    style: TextStyle(
-                      color: Colors.red[300],
+                    'Recording... ${_formatRecordingTime(_recordingSeconds)}',
+                    style: const TextStyle(
+                      color: Colors.red,
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    'Max ${_maxRecordingSeconds}s',
+                    style: TextStyle(
+                      color: Colors.red.withOpacity(0.6),
+                      fontSize: 12,
                     ),
                   ),
                 ],
               ),
             ),
 
-          // PTT Button area
+          // Bottom button area
           Container(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             decoration: BoxDecoration(
               color: const Color(0xFF12121A),
               border: Border(
@@ -326,78 +409,95 @@ class _VoiceChatScreenState extends ConsumerState<VoiceChatScreen>
                 ),
               ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Cancel button (only visible when recording)
-                if (_isRecording)
-                  GestureDetector(
-                    onTap: _cancelRecording,
-                    child: Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[800],
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.close,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                    ),
-                  ),
-
-                if (_isRecording) const SizedBox(width: 32),
-
-                // Main PTT button
-                GestureDetector(
-                  onLongPressStart: (_) => _startRecording(),
-                  onLongPressEnd: (_) => _stopRecordingAndSend(),
-                  onLongPressCancel: _cancelRecording,
-                  child: AnimatedBuilder(
-                    animation: _pulseController,
-                    builder: (context, child) {
-                      final scale = _isRecording
-                          ? 1.0 + (_pulseController.value * 0.1)
-                          : 1.0;
-                      return Transform.scale(
-                        scale: scale,
+            child: SafeArea(
+              top: false,
+              child: Row(
+                children: [
+                  // Cancel button (only when recording)
+                  if (_isRecording)
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: _cancelRecording,
                         child: Container(
-                          width: 80,
-                          height: 80,
+                          height: 56,
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: _isRecording
-                                  ? [Colors.red, Colors.red.shade700]
-                                  : [
-                                      const Color(0xFF667EEA),
-                                      const Color(0xFF764BA2)
-                                    ],
-                            ),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: (_isRecording
-                                        ? Colors.red
-                                        : const Color(0xFF667EEA))
-                                    .withOpacity(0.4),
-                                blurRadius: 20,
-                                spreadRadius: 5,
+                            color: Colors.grey[800],
+                            borderRadius: BorderRadius.circular(28),
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.delete_outline, color: Colors.white70),
+                              SizedBox(width: 8),
+                              Text(
+                                'Cancel',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ],
                           ),
-                          child: Icon(
-                            _isRecording ? Icons.mic : Icons.mic_none,
-                            color: Colors.white,
-                            size: 36,
-                          ),
                         ),
-                      );
-                    },
+                      ),
+                    ),
+
+                  if (_isRecording) const SizedBox(width: 12),
+
+                  // Record / Send button
+                  Expanded(
+                    flex: _isRecording ? 1 : 1,
+                    child: GestureDetector(
+                      onTap: _toggleRecording,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        height: 56,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: _isRecording
+                                ? [Colors.green, Colors.green.shade700]
+                                : [
+                                    const Color(0xFF667EEA),
+                                    const Color(0xFF764BA2)
+                                  ],
+                          ),
+                          borderRadius: BorderRadius.circular(28),
+                          boxShadow: [
+                            BoxShadow(
+                              color: (_isRecording
+                                      ? Colors.green
+                                      : const Color(0xFF667EEA))
+                                  .withOpacity(0.3),
+                              blurRadius: 12,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              _isRecording ? Icons.send : Icons.mic,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              _isRecording ? 'Send' : 'Record Voice Message',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -426,9 +526,9 @@ class _VoiceMessageBubble extends StatelessWidget {
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.7,
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
         ),
         decoration: BoxDecoration(
           gradient: isMe
@@ -464,24 +564,24 @@ class _VoiceMessageBubble extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
 
-            // Waveform placeholder and duration
+            // Waveform and duration
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Waveform visualization
                   Row(
-                    children: List.generate(12, (index) {
-                      final height = 8.0 + (index % 4) * 6.0;
+                    children: List.generate(15, (index) {
+                      final height = 6.0 + ((index * 3 + 5) % 7) * 3.0;
                       return Expanded(
                         child: Container(
                           height: height,
-                          margin: const EdgeInsets.symmetric(horizontal: 1),
+                          margin: const EdgeInsets.symmetric(horizontal: 0.5),
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(
-                              isPlaying && index < 6 ? 0.9 : 0.4,
+                              isPlaying && index < 8 ? 0.9 : 0.4,
                             ),
                             borderRadius: BorderRadius.circular(2),
                           ),
@@ -490,12 +590,22 @@ class _VoiceMessageBubble extends StatelessWidget {
                     }),
                   ),
                   const SizedBox(height: 6),
-                  Text(
-                    message.durationFormatted,
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
-                      fontSize: 12,
-                    ),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.mic,
+                        size: 12,
+                        color: Colors.white.withOpacity(0.6),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        message.durationFormatted,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.7),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
