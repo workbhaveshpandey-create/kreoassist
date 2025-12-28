@@ -7,7 +7,6 @@ import 'package:background_downloader/background_downloader.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
 import 'notification_service.dart';
-import 'toast_service.dart';
 
 /// Self-hosted OTA Update Service
 /// Checks GitHub for new versions and prompts user to update
@@ -18,18 +17,22 @@ class UpdateService {
 
   /// Check for updates and show dialog if available
   static Future<void> checkForUpdates(BuildContext context) async {
-    // DEBUG: Show checking status
+    // DEBUG: Show checking status using direct SnackBar (more reliable than ToastService)
     if (context.mounted) {
-      ToastService.showInfo("Checking for updates...");
+      _showSnackBar(context, "Checking for updates...", Colors.blue);
     }
 
     try {
       // Add cache-bust parameter to prevent stale cached responses
       final cacheBustUrl =
           '$_versionUrl?t=${DateTime.now().millisecondsSinceEpoch}';
+      debugPrint('Update check URL: $cacheBustUrl');
+
       final response = await http.get(Uri.parse(cacheBustUrl)).timeout(
-            const Duration(seconds: 10),
+            const Duration(seconds: 15),
           );
+
+      debugPrint('Update check response: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final remoteVersion = json.decode(response.body);
@@ -38,7 +41,7 @@ class UpdateService {
         final currentBuild = int.tryParse(packageInfo.buildNumber) ?? 0;
         final remoteBuild = remoteVersion['build'] as int? ?? 0;
 
-        print("DEBUG: Remote Build: $remoteBuild, Current: $currentBuild");
+        debugPrint("Update check: Remote=$remoteBuild, Current=$currentBuild");
 
         if (remoteBuild > currentBuild) {
           // New version available!
@@ -53,22 +56,35 @@ class UpdateService {
           }
         } else {
           if (context.mounted) {
-            ToastService.showSuccess(
-                "App is up to date (v${packageInfo.version})");
+            _showSnackBar(context,
+                "App is up to date (v${packageInfo.version})", Colors.green);
           }
         }
       } else {
         if (context.mounted) {
-          ToastService.showError(
-              "Update check failed: HTTP ${response.statusCode}");
+          _showSnackBar(context,
+              "Update check failed: HTTP ${response.statusCode}", Colors.red);
         }
       }
     } catch (e) {
       debugPrint('Update check failed: $e');
       if (context.mounted) {
-        ToastService.showError("Update error: $e");
+        _showSnackBar(context, "Update error: $e", Colors.red);
       }
     }
+  }
+
+  /// Helper to show SnackBar directly (more reliable than ToastService)
+  static void _showSnackBar(BuildContext context, String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+      ),
+    );
   }
 
   /// Check for updates in background (Headless)
