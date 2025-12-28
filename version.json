@@ -1,6 +1,6 @@
 {
-    "version": "1.6.7",
-    "build": 27,
+    "version": "1.6.8",
+    "build": 28,
     "release_notes": "🔔 v1.6.7 Update Notification Fix:\n- ✅ Now shows reliable SnackBar for update status.\n- 💬 Messages visible for all peers.\n- 📡 Improved update detection.",
     "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.6.7/app-release.apk"
 }
