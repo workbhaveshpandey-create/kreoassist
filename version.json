@@ -1,6 +1,6 @@
 {
-    "version": "1.6.0",
-    "build": 20,
-    "release_notes": "🚀 v1.6.0 Major Update:\n- ✨ Premium Floating Notifications\n- 🔄 Reliable Background Message Persistence\n- ⚡ Instant App Startup (Background Updates)\n- 🐛 Mesh Stability Fixes",
-    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.6.0/app-release.apk"
+    "version": "1.6.1",
+    "build": 21,
+    "release_notes": "✨ v1.6.1 Update UX Enhancement:\n- ⏳ Smart Startup: Update check now waits for app to fully load\n- 🔄 Non-Intrusive Notifications: Removed annoying popups\n- 🐛 Minor Mesh Stability Tweaks",
+    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.6.1/app-release.apk"
 }

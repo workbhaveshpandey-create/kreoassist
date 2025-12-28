@@ -38,7 +38,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     // Check for app updates (self-hosted OTA)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      UpdateService.checkForUpdates(context);
+      // Delay update check to ensure smooth startup & no "loading slider" interference
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) UpdateService.checkForUpdates(context);
+      });
     });
   }
 

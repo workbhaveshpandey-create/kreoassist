@@ -7,6 +7,7 @@ import 'package:background_downloader/background_downloader.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
 import 'notification_service.dart';
+import 'toast_service.dart';
 
 /// Self-hosted OTA Update Service
 /// Checks GitHub for new versions and prompts user to update
@@ -19,10 +20,7 @@ class UpdateService {
   static Future<void> checkForUpdates(BuildContext context) async {
     // DEBUG: Show checking status
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text("Checking for updates..."),
-        duration: Duration(seconds: 1),
-      ));
+      ToastService.showInfo("Checking for updates...");
     }
 
     try {
@@ -52,27 +50,20 @@ class UpdateService {
           }
         } else {
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text("App is up to date (v${packageInfo.version})"),
-              duration: const Duration(seconds: 2),
-            ));
+            ToastService.showSuccess(
+                "App is up to date (v${packageInfo.version})");
           }
         }
       } else {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text("Update check failed: HTTP ${response.statusCode}"),
-            backgroundColor: Colors.red,
-          ));
+          ToastService.showError(
+              "Update check failed: HTTP ${response.statusCode}");
         }
       }
     } catch (e) {
       debugPrint('Update check failed: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("Update error: $e"),
-          backgroundColor: Colors.red,
-        ));
+        ToastService.showError("Update error: $e");
       }
     }
   }
