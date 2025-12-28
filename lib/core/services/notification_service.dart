@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../main.dart';
+import '../../features/emergency_dashboard/presentation/screens/mesh_chat_screen.dart';
 
 final notificationServiceProvider = Provider<NotificationService>((ref) {
   return NotificationService();
@@ -32,10 +34,33 @@ class NotificationService {
     await _notificationsPlugin.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse details) {
-        // When notification is tapped, bring app to foreground (default)
-        // We can parse 'details.payload' to navigate to specific chat if needed
+        // Handle notification tap
         print("🔔 Notification Tapped: ${details.payload}");
-        // TODO: Implement navigation via GlobalKey if needed
+
+        if (details.payload != null && details.payload!.startsWith('chat:')) {
+          try {
+            final parts = details.payload!.split(':');
+            if (parts.length >= 3) {
+              final peerId = parts[1];
+              final peerName = parts[2];
+
+              // Navigate to chat screen
+              // Using a delay to ensure context is ready if app was terminated
+              Future.delayed(const Duration(milliseconds: 200), () {
+                navigatorKey.currentState?.push(
+                  MaterialPageRoute(
+                    builder: (context) => MeshChatScreen(
+                      peerId: peerId,
+                      peerName: peerName,
+                    ),
+                  ),
+                );
+              });
+            }
+          } catch (e) {
+            print("Error navigating to chat: $e");
+          }
+        }
       },
     );
   }

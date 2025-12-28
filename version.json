@@ -1,6 +1,6 @@
 {
-    "version": "1.5.3",
-    "build": 15,
-    "release_notes": "🔧 **Voice Chat Fixes (v1.5.3)**\n\n- Voice messages now persist after closing chat\n- Fixed play/pause button reliability\n- Fixed recording state issues\n- Improved audio playback callbacks",
-    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.5.3/app-release.apk"
+    "version": "1.5.4",
+    "build": 14,
+    "release_notes": "✨ Voice Chat UX Upgrade:\n- 🎙️ Single Smart Button: Tap mic to record, tap send for text!\n- 🌊 Animated Waveforms: See your voice messages come alive.\n- 🔔 Smart Notifications: Tap to open chat directly.\n- ⏱️ Timestamps & Sorting fixes.",
+    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.5.4/app-release.apk"
 }

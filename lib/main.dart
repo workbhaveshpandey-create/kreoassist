@@ -51,6 +51,9 @@ void main() async {
   runApp(const ProviderScope(child: KreoAssistApp()));
 }
 
+// Global navigator key for notification navigation
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 class KreoAssistApp extends StatelessWidget {
   const KreoAssistApp({super.key});
 
@@ -59,6 +62,7 @@ class KreoAssistApp extends StatelessWidget {
     return MaterialApp(
       title: 'KreoAssist',
       debugShowCheckedModeBanner: false,
+      navigatorKey: navigatorKey, // Use global key
       theme: _buildPitchBlackTheme(),
       darkTheme: _buildPitchBlackTheme(),
       themeMode: ThemeMode.dark,

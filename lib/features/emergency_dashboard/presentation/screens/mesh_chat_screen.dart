@@ -472,75 +472,106 @@ class _MeshChatScreenState extends ConsumerState<MeshChatScreen> {
   }
 
   Widget _buildInputBar() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      color: const Color(0xFF1E1E1E),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            // Text input
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2A2A2A),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: TextField(
-                  controller: _controller,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
-                    hintText: 'Type message...',
-                    hintStyle: TextStyle(color: Colors.white38),
-                    border: InputBorder.none,
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  ),
-                  onSubmitted: (_) => _sendText(),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
+    // Listen to text changes for button state
+    return StatefulBuilder(
+      builder: (context, setLocalState) {
+        // Determine button state
+        final hasText = _controller.text.trim().isNotEmpty;
 
-            // Voice button
-            GestureDetector(
-              onTap: _isRecording ? _stopAndSend : _startRecording,
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: _isRecording
-                        ? [Colors.green, Colors.green.shade700]
-                        : [const Color(0xFF667EEA), const Color(0xFF764BA2)],
+        return Container(
+          padding: const EdgeInsets.all(12),
+          color: const Color(0xFF1E1E1E),
+          child: SafeArea(
+            top: false,
+            child: Row(
+              children: [
+                // Text input
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2A2A2A),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: TextField(
+                      controller: _controller,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        hintText: 'Type or tap mic...',
+                        hintStyle: TextStyle(color: Colors.white38),
+                        border: InputBorder.none,
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                      onChanged: (_) => setLocalState(() {}),
+                      onSubmitted: (_) => _sendText(),
+                    ),
                   ),
-                  shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  _isRecording ? Icons.send : Icons.mic,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
+                const SizedBox(width: 10),
 
-            // Send text button
-            GestureDetector(
-              onTap: _sendText,
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF00BCD4),
-                  shape: BoxShape.circle,
+                // Single smart button
+                GestureDetector(
+                  onTap: () {
+                    if (_isRecording) {
+                      // Recording -> Send voice
+                      _stopAndSend();
+                    } else if (hasText) {
+                      // Has text -> Send text
+                      _sendText();
+                      setLocalState(() {});
+                    } else {
+                      // Empty -> Start recording
+                      _startRecording();
+                    }
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: _isRecording
+                            ? [Colors.green, Colors.green.shade700]
+                            : hasText
+                                ? [
+                                    const Color(0xFF00BCD4),
+                                    const Color(0xFF0097A7)
+                                  ]
+                                : [
+                                    const Color(0xFF667EEA),
+                                    const Color(0xFF764BA2)
+                                  ],
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: (_isRecording
+                                  ? Colors.green
+                                  : hasText
+                                      ? const Color(0xFF00BCD4)
+                                      : const Color(0xFF667EEA))
+                              .withOpacity(0.4),
+                          blurRadius: 10,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      _isRecording
+                          ? Icons.send
+                          : hasText
+                              ? Icons.send
+                              : Icons.mic,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
                 ),
-                child: const Icon(Icons.send, color: Colors.white, size: 20),
-              ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
@@ -581,25 +612,42 @@ class _TextBubble extends StatelessWidget {
             ? item.text!.split(':').sublist(1).join(':').trim()
             : item.text!;
 
+    final time = TimeOfDay.fromDateTime(item.timestamp).format(context);
+
     return Align(
       alignment: item.isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        constraints:
-            BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
-        decoration: BoxDecoration(
-          color: item.isMe ? const Color(0xFF00BCD4) : const Color(0xFF2A2A2A),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Text(content,
-            style: const TextStyle(color: Colors.white, fontSize: 15)),
+      child: Column(
+        crossAxisAlignment:
+            item.isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.72),
+            decoration: BoxDecoration(
+              color:
+                  item.isMe ? const Color(0xFF00BCD4) : const Color(0xFF2A2A2A),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(content,
+                style: const TextStyle(color: Colors.white, fontSize: 15)),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              time,
+              style:
+                  TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 10),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _VoiceBubble extends StatelessWidget {
+class _VoiceBubble extends StatefulWidget {
   final _ChatItem item;
   final bool isPlaying;
   final VoidCallback onTap;
@@ -613,65 +661,125 @@ class _VoiceBubble extends StatelessWidget {
   });
 
   @override
+  State<_VoiceBubble> createState() => _VoiceBubbleState();
+}
+
+class _VoiceBubbleState extends State<_VoiceBubble>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final time = TimeOfDay.fromDateTime(widget.item.timestamp).format(context);
+
     return Align(
-      alignment: item.isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          margin: const EdgeInsets.symmetric(vertical: 4),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.65),
-          decoration: BoxDecoration(
-            gradient: item.isMe
-                ? const LinearGradient(
-                    colors: [Color(0xFF667EEA), Color(0xFF764BA2)])
-                : null,
-            color: item.isMe ? null : const Color(0xFF2A2A2A),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  isPlaying ? Icons.pause : Icons.play_arrow,
-                  color: Colors.white,
-                  size: 20,
-                ),
+      alignment:
+          widget.item.isMe ? Alignment.centerRight : Alignment.centerLeft,
+      child: Column(
+        crossAxisAlignment: widget.item.isMe
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            onTap: widget.onTap,
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 0.65),
+              decoration: BoxDecoration(
+                gradient: widget.item.isMe
+                    ? const LinearGradient(
+                        colors: [Color(0xFF667EEA), Color(0xFF764BA2)])
+                    : null,
+                color: widget.item.isMe ? null : const Color(0xFF2A2A2A),
+                borderRadius: BorderRadius.circular(16),
               ),
-              const SizedBox(width: 10),
-              // Simple waveform
-              Row(
-                children: List.generate(8, (i) {
-                  final h = 8.0 + Random(i).nextDouble() * 12;
-                  return Container(
-                    width: 3,
-                    height: h,
-                    margin: const EdgeInsets.symmetric(horizontal: 1),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(isPlaying ? 0.9 : 0.5),
-                      borderRadius: BorderRadius.circular(2),
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
                     ),
-                  );
-                }),
+                    child: Icon(
+                      widget.isPlaying ? Icons.pause : Icons.play_arrow,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  // Animated waveform
+                  Expanded(
+                    child: SizedBox(
+                      height: 24,
+                      child: AnimatedBuilder(
+                        animation: _controller,
+                        builder: (context, child) {
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: List.generate(12, (i) {
+                              final value = widget.isPlaying
+                                  ? sin(
+                                      (_controller.value * 2 * pi) + (i * 0.5))
+                                  : 0.0;
+                              final height = 8.0 +
+                                  (value * 6.0).abs() +
+                                  (Random(i).nextDouble() * 4);
+                              return Container(
+                                width: 3,
+                                height: height,
+                                margin:
+                                    const EdgeInsets.symmetric(horizontal: 1),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(
+                                      widget.isPlaying ? 0.9 : 0.5),
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              );
+                            }),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    widget.formatDuration(widget.item.durationMs ?? 0),
+                    style: TextStyle(
+                        color: Colors.white.withOpacity(0.8), fontSize: 12),
+                  ),
+                ],
               ),
-              const SizedBox(width: 10),
-              Text(
-                formatDuration(item.durationMs ?? 0),
-                style: TextStyle(
-                    color: Colors.white.withOpacity(0.8), fontSize: 12),
-              ),
-            ],
+            ),
           ),
-        ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              time,
+              style:
+                  TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 10),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -480,6 +480,7 @@ class MeshNotifier extends StateNotifier<MeshState> {
           id: 4,
           title: '🎙️ Voice from $peerName',
           body: 'Received ${voiceMessage.durationFormatted} voice message',
+          payload: 'chat:$originId:$peerName',
         );
 
         print(
@@ -512,6 +513,7 @@ class MeshNotifier extends StateNotifier<MeshState> {
         id: 2,
         title: 'Message from $peerName',
         body: data['message'],
+        payload: 'chat:$senderId:$peerName',
       );
     }
   }
