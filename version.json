@@ -1,8 +1,6 @@
-```
 {
     "version": "1.5.6",
     "build": 16,
     "release_notes": "🚀 Update System Fix (v1.5.6):\n- ⚡ **Instant Update Checks:** App now checks for updates immediately on launch.\n- 🎙️ Voice Chat Improvements (rolled up form v1.5.5)\n- 🌊 Animated Waveforms & Smart Notifications",
     "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.5.6/app-release.apk"
 }
-```
