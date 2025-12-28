@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../ai_assistant/data/local_ai_service_impl.dart';
 import '../../../ai_assistant/data/rag_manager_impl.dart';
+import '../../../../core/services/update_service.dart';
 import 'home_screen.dart';
 
 class StartupScreen extends StatefulWidget {
@@ -92,7 +93,12 @@ class _StartupScreenState extends State<StartupScreen> {
     await rag.addDocument("CPR Guide",
         "Place the heel of your hand on the centre of the person's chest, then place the other hand on top and press down by 5 to 6cm (2 to 2.5 inches) at a steady rate of 100 to 120 compressions a minute.");
 
-    // 3. Check AI Model
+    // 3. Check for Updates (Immediate)
+    if (mounted) {
+      await UpdateService.checkForUpdates(context);
+    }
+
+    // 4. Check AI Model
     bool exists = await _aiService.isModelDownloaded;
     if (exists) {
       // Show smooth 5-second loading for better experience
