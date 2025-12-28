@@ -24,7 +24,10 @@ class UpdateService {
     }
 
     try {
-      final response = await http.get(Uri.parse(_versionUrl)).timeout(
+      // Add cache-bust parameter to prevent stale cached responses
+      final cacheBustUrl =
+          '$_versionUrl?t=${DateTime.now().millisecondsSinceEpoch}';
+      final response = await http.get(Uri.parse(cacheBustUrl)).timeout(
             const Duration(seconds: 10),
           );
 
@@ -71,8 +74,11 @@ class UpdateService {
   /// Check for updates in background (Headless)
   static Future<void> checkForUpdatesInBackground() async {
     try {
+      // Cache-bust to ensure fresh response
+      final cacheBustUrl =
+          '$_versionUrl?t=${DateTime.now().millisecondsSinceEpoch}';
       final response = await http
-          .get(Uri.parse(_versionUrl))
+          .get(Uri.parse(cacheBustUrl))
           .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {

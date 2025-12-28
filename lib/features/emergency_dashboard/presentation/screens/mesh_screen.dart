@@ -247,22 +247,25 @@ class _MeshScreenState extends ConsumerState<MeshScreen>
                         child: _RadarWithPeers(
                           controller: _radarController,
                           color: _getRadarColor(isAdvertising, isDiscovering),
-                          // FIX: Dedup peers by UserId
+                          // FIX: Only show peers who completed handshake (have userId and name)
                           peers: () {
                             final uniqueEndpoints = <String>[];
                             final seenUserIds = <String>{};
 
                             for (final ep in connectedEndpoints) {
                               final userId = meshState.endpointToUserId[ep];
-                              if (userId != null) {
+                              final name = meshState.peerNames[ep];
+
+                              // Only include peers who completed handshake (have both userId AND name)
+                              if (userId != null &&
+                                  name != null &&
+                                  name != "Unknown") {
                                 if (!seenUserIds.contains(userId)) {
                                   seenUserIds.add(userId);
                                   uniqueEndpoints.add(ep);
                                 }
-                              } else {
-                                // Unknown user, show as separate dot
-                                uniqueEndpoints.add(ep);
                               }
+                              // Skip devices without proper handshake - don't show them
                             }
                             return uniqueEndpoints;
                           }(),
