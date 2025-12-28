@@ -1,6 +1,6 @@
 {
-    "version": "1.5.1",
-    "build": 13,
-    "release_notes": "🎙️ **Voice Messages (v1.5.1)**\n\n- Tap to record, tap to send (WhatsApp-style)\n- Fixed recording permission issues\n- Improved audio quality (44.1kHz)\n- Better UI with cancel option",
-    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.5.1/app-release.apk"
+    "version": "1.5.2",
+    "build": 14,
+    "release_notes": "🎙️ **Voice Chat + Radar Polish (v1.5.2)**\n\n- Voice messages integrated directly in chat\n- Premium radar peer display with smart labels\n- Animated waveform visualizer\n- Names positioned to prevent overlap",
+    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.5.2/app-release.apk"
 }

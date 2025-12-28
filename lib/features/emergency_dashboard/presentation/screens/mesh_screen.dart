@@ -1137,12 +1137,13 @@ class _RadarWithPeers extends StatelessWidget {
     final hash = endpointId.hashCode;
     final random = math.Random(hash);
 
-    final distance = 0.35 + random.nextDouble() * 0.45;
+    final distance = 0.35 + random.nextDouble() * 0.40;
     final angle = random.nextDouble() * 2 * math.pi;
 
     final center = radarSize / 2;
     final radius = center * distance;
-    final x = center + radius * math.cos(angle) - 24;
+    final x =
+        center + radius * math.cos(angle) - 50; // Adjusted for wider widget
     final y = center + radius * math.sin(angle) - 24;
 
     final name = peerNames[endpointId] ?? endpointId;
@@ -1152,7 +1153,7 @@ class _RadarWithPeers extends StatelessWidget {
       top: y,
       child: GestureDetector(
         onTap: () => onPeerTap(endpointId),
-        child: _PulsingPeerDot(label: name),
+        child: _PulsingPeerDot(label: name, angle: angle),
       ),
     );
   }
@@ -1160,7 +1161,8 @@ class _RadarWithPeers extends StatelessWidget {
 
 class _PulsingPeerDot extends StatefulWidget {
   final String label;
-  const _PulsingPeerDot({required this.label});
+  final double angle; // For smart label positioning
+  const _PulsingPeerDot({required this.label, this.angle = 0});
 
   @override
   State<_PulsingPeerDot> createState() => _PulsingPeerDotState();
@@ -1175,7 +1177,7 @@ class _PulsingPeerDotState extends State<_PulsingPeerDot>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 2000),
     )..repeat(reverse: true);
   }
 
@@ -1187,54 +1189,125 @@ class _PulsingPeerDotState extends State<_PulsingPeerDot>
 
   @override
   Widget build(BuildContext context) {
+    // Determine label position based on angle to prevent collisions
+    // Right side (0 to π/2 and -π/2 to 0): label on right
+    // Left side (π/2 to π and -π to -π/2): label on left
+    final normalizedAngle = widget.angle % (2 * math.pi);
+    final isRightSide =
+        normalizedAngle < math.pi / 2 || normalizedAngle > 3 * math.pi / 2;
+
+    // Get first name or initials
+    final displayName =
+        widget.label.length > 8 ? widget.label.substring(0, 8) : widget.label;
+    final initial =
+        widget.label.isNotEmpty ? widget.label[0].toUpperCase() : '?';
+
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        final scale = 1.0 + (_controller.value * 0.2);
-        return Transform.scale(
-          scale: scale,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+        final pulse = 1.0 + (_controller.value * 0.15);
+        final glowOpacity = 0.3 + (_controller.value * 0.3);
+
+        return SizedBox(
+          width: 100,
+          height: 48,
+          child: Stack(
+            clipBehavior: Clip.none,
             children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4CAF50).withOpacity(0.2),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: const Color(0xFF4CAF50),
-                    width: 2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF4CAF50).withOpacity(0.4),
-                      blurRadius: 12,
-                      spreadRadius: 2,
+              // Main dot with avatar
+              Positioned(
+                left: isRightSide ? 0 : 52,
+                top: 0,
+                child: Transform.scale(
+                  scale: pulse,
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color:
+                              const Color(0xFF4CAF50).withOpacity(glowOpacity),
+                          blurRadius: 16,
+                          spreadRadius: 4,
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.person,
-                  color: Color(0xFF4CAF50),
-                  size: 24,
+                    child: Center(
+                      child: Text(
+                        initial,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.7),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  widget.label.length > 10
-                      ? '${widget.label.substring(0, 10)}...'
-                      : widget.label,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w500,
+
+              // Premium name label - positioned to avoid collision
+              Positioned(
+                left: isRightSide ? 48 : 0,
+                top: 10,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFF1A1A1A).withOpacity(0.95),
+                        const Color(0xFF0D0D0D).withOpacity(0.95),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: const Color(0xFF4CAF50).withOpacity(0.4),
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.5),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4CAF50),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF4CAF50).withOpacity(0.6),
+                              blurRadius: 4,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        displayName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
