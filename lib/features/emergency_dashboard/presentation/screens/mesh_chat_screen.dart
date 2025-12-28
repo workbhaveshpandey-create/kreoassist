@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/mesh_provider.dart';
+import 'voice_chat_screen.dart';
 
 class MeshChatScreen extends ConsumerStatefulWidget {
   final String peerId;
@@ -164,6 +165,33 @@ class _MeshChatScreenState extends ConsumerState<MeshChatScreen> {
             ),
           ],
         ),
+        actions: [
+          // Voice chat button
+          IconButton(
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.mic, color: Colors.white, size: 20),
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => VoiceChatScreen(
+                    peerId: widget.peerId,
+                    peerName: widget.peerName,
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Column(
         children: [

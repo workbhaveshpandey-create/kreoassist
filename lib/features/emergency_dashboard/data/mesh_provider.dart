@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/services/notification_service.dart';
 import 'package:uuid/uuid.dart'; // For unique packet IDs
+import '../../mesh_network/domain/voice_message.dart';
 
 // Emergency Status Types
 enum EmergencyStatus {
@@ -113,6 +114,9 @@ class MeshState {
   final Set<String> onlinePeers; // Set of userIds currently online
   final Map<String, String> userIdToName; // userId -> display name (persisted)
 
+  // Voice messages
+  final List<VoiceMessage> incomingVoiceMessages;
+
   const MeshState({
     this.isAdvertising = false,
     this.isDiscovering = false,
@@ -127,6 +131,7 @@ class MeshState {
     this.backgroundMode = false,
     this.onlinePeers = const {},
     this.userIdToName = const {},
+    this.incomingVoiceMessages = const [],
   });
 
   MeshState copyWith({
@@ -143,6 +148,7 @@ class MeshState {
     bool? backgroundMode,
     Set<String>? onlinePeers,
     Map<String, String>? userIdToName,
+    List<VoiceMessage>? incomingVoiceMessages,
   }) {
     return MeshState(
       isAdvertising: isAdvertising ?? this.isAdvertising,
@@ -158,6 +164,8 @@ class MeshState {
       backgroundMode: backgroundMode ?? this.backgroundMode,
       onlinePeers: onlinePeers ?? this.onlinePeers,
       userIdToName: userIdToName ?? this.userIdToName,
+      incomingVoiceMessages:
+          incomingVoiceMessages ?? this.incomingVoiceMessages,
     );
   }
 }
@@ -448,6 +456,40 @@ class MeshNotifier extends StateNotifier<MeshState> {
       return;
     }
 
+    // VOICE MESSAGE HANDLING
+    if (data['type'] == 'voice_message') {
+      final senderId = originId ?? senderEndpoint;
+      final peerName = _userIdToName[senderId] ?? "Unknown Peer";
+
+      try {
+        final voiceMessage = VoiceMessage(
+          senderId: senderId,
+          senderName: peerName,
+          audioBase64: data['audioBase64'] as String,
+          durationMs: data['durationMs'] as int? ?? 0,
+          timestamp: DateTime.now(),
+          messageId: data['messageId'] as String? ?? _uuid.v4(),
+        );
+
+        // Add to incoming voice messages
+        state = state.copyWith(
+          incomingVoiceMessages: [...state.incomingVoiceMessages, voiceMessage],
+        );
+
+        _notificationService.showNotification(
+          id: 4,
+          title: '🎙️ Voice from $peerName',
+          body: 'Received ${voiceMessage.durationFormatted} voice message',
+        );
+
+        print(
+            "🎙️ Voice message from $peerName (${voiceMessage.durationFormatted})");
+      } catch (e) {
+        print("Error parsing voice message: $e");
+      }
+      return;
+    }
+
     if (data.containsKey('message')) {
       // Resolve sender identity using ORIGIN ID from packet
       final senderId = originId ?? "Unknown";
@@ -584,6 +626,68 @@ class MeshNotifier extends StateNotifier<MeshState> {
     final messages =
         state.incomingMessages.where((m) => m.senderId == peerId).toList();
     clearMessagesFromPeer(peerId);
+    return messages;
+  }
+
+  /// Send a voice message to a specific peer
+  void sendVoiceMessage(String peerId, VoiceMessage voice) {
+    final payload = {
+      'type': 'voice_message',
+      'audioBase64': voice.audioBase64,
+      'durationMs': voice.durationMs,
+      'messageId': voice.messageId,
+    };
+
+    final packet = {
+      'packetId': _uuid.v4(),
+      'originId': _myUserId,
+      'targetId': peerId,
+      'ttl': MAX_TTL,
+      'data': payload
+    };
+
+    _seenPacketIds.add(packet['packetId'] as String);
+    _meshService.broadcastPayload(packet);
+
+    print("🎙️ Sent voice message to $peerId (${voice.durationFormatted})");
+  }
+
+  /// Broadcast voice message to all peers
+  void broadcastVoiceMessage(VoiceMessage voice) {
+    final payload = {
+      'type': 'voice_message',
+      'audioBase64': voice.audioBase64,
+      'durationMs': voice.durationMs,
+      'messageId': voice.messageId,
+    };
+
+    final packet = {
+      'packetId': _uuid.v4(),
+      'originId': _myUserId,
+      'ttl': MAX_TTL,
+      'data': payload
+    };
+
+    _seenPacketIds.add(packet['packetId'] as String);
+    _meshService.broadcastPayload(packet);
+
+    print("🎙️ Broadcast voice message (${voice.durationFormatted})");
+  }
+
+  /// Remove consumed voice messages for a specific peer
+  void clearVoiceMessagesFromPeer(String peerId) {
+    state = state.copyWith(
+      incomingVoiceMessages: state.incomingVoiceMessages
+          .where((m) => m.senderId != peerId)
+          .toList(),
+    );
+  }
+
+  /// Get voice messages for a specific peer and mark them as consumed
+  List<VoiceMessage> consumeVoiceMessagesForPeer(String peerId) {
+    final messages =
+        state.incomingVoiceMessages.where((m) => m.senderId == peerId).toList();
+    clearVoiceMessagesFromPeer(peerId);
     return messages;
   }
 
