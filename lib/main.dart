@@ -28,11 +28,11 @@ void main() async {
     isInDebugMode: false, // Set to true to see notifications immediately in dev
   );
 
-  // Register Periodic Task (Every 1 hour)
+  // Register Periodic Task (Every 15 minutes)
   Workmanager().registerPeriodicTask(
     "update_check_task",
     "check_updates",
-    frequency: const Duration(hours: 1),
+    frequency: const Duration(minutes: 15),
     constraints: Constraints(
       networkType: NetworkType.connected,
     ),
@@ -54,8 +54,37 @@ void main() async {
 // Global navigator key for notification navigation
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-class KreoAssistApp extends StatelessWidget {
+class KreoAssistApp extends ConsumerStatefulWidget {
   const KreoAssistApp({super.key});
+
+  @override
+  ConsumerState<KreoAssistApp> createState() => _KreoAssistAppState();
+}
+
+class _KreoAssistAppState extends ConsumerState<KreoAssistApp>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Check for updates when app comes to foreground
+      final context = navigatorKey.currentContext;
+      if (context != null) {
+        UpdateService.checkForUpdates(context);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

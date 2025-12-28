@@ -1,6 +1,6 @@
 {
-    "version": "1.6.3",
-    "build": 23,
-    "release_notes": "🚀 v1.6.3 UI Polish & Stability:\n- ✨ Premium Floating Notifications everywhere.\n- 🧹 Removed all legacy bottom bars.\n- 🔄 Fresh build with latest UI consistency fixes.",
-    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.6.3/app-release.apk"
+    "version": "1.6.4",
+    "build": 24,
+    "release_notes": "🎙️ v1.6.4 Voice Message Reliability:\n- ✅ Fixed voice messages not appearing when receiver closes window.\n- 💾 Immediate persistence of incoming voice messages.\n- � Improved voice recording and playback stability.",
+    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.6.4/app-release.apk"
 }

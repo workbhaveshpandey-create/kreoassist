@@ -3,6 +3,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../main.dart';
 import '../../features/emergency_dashboard/presentation/screens/mesh_chat_screen.dart';
+import 'update_service.dart';
 
 final notificationServiceProvider = Provider<NotificationService>((ref) {
   return NotificationService();
@@ -60,6 +61,13 @@ class NotificationService {
           } catch (e) {
             print("Error navigating to chat: $e");
           }
+        } else if (details.payload == 'update_check') {
+          print("🚀 Update Notification Tapped");
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (navigatorKey.currentContext != null) {
+              UpdateService.checkForUpdates(navigatorKey.currentContext!);
+            }
+          });
         }
       },
     );
