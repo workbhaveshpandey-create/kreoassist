@@ -1,6 +1,6 @@
 {
-    "version": "1.5.2",
-    "build": 14,
-    "release_notes": "🎙️ **Voice Chat + Radar Polish (v1.5.2)**\n\n- Voice messages integrated directly in chat\n- Premium radar peer display with smart labels\n- Animated waveform visualizer\n- Names positioned to prevent overlap",
-    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.5.2/app-release.apk"
+    "version": "1.5.3",
+    "build": 15,
+    "release_notes": "🔧 **Voice Chat Fixes (v1.5.3)**\n\n- Voice messages now persist after closing chat\n- Fixed play/pause button reliability\n- Fixed recording state issues\n- Improved audio playback callbacks",
+    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.5.3/app-release.apk"
 }

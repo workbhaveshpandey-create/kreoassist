@@ -7,255 +7,214 @@ import 'package:record/record.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-/// Voice recording and playback service for voice messages
+/// Simplified Voice Service with better reliability
 class VoiceService {
   AudioRecorder? _recorder;
-  final AudioPlayer _player = AudioPlayer();
+  AudioPlayer? _player;
 
   String? _currentRecordingPath;
   DateTime? _recordingStartTime;
-
-  final _isRecordingController = StreamController<bool>.broadcast();
-  final _isPlayingController = StreamController<bool>.broadcast();
-
-  /// Stream indicating if currently recording
-  Stream<bool> get isRecordingStream => _isRecordingController.stream;
-
-  /// Stream indicating if currently playing
-  Stream<bool> get isPlayingStream => _isPlayingController.stream;
-
   bool _isRecording = false;
   bool _isPlaying = false;
+
+  // Callback for when playback completes
+  Function()? onPlaybackComplete;
 
   bool get isRecording => _isRecording;
   bool get isPlaying => _isPlaying;
 
-  VoiceService() {
-    _player.onPlayerComplete.listen((_) {
-      _isPlaying = false;
-      _isPlayingController.add(false);
-    });
+  /// Initialize player
+  void _ensurePlayer() {
+    if (_player == null) {
+      _player = AudioPlayer();
+      _player!.onPlayerComplete.listen((_) {
+        print('🔊 Playback completed');
+        _isPlaying = false;
+        onPlaybackComplete?.call();
+      });
+      _player!.onPlayerStateChanged.listen((state) {
+        print('🔊 Player state: $state');
+        if (state == PlayerState.completed || state == PlayerState.stopped) {
+          _isPlaying = false;
+        }
+      });
+    }
   }
 
   /// Request microphone permission
   Future<bool> requestPermission() async {
     final status = await Permission.microphone.request();
-    print('🎤 Microphone permission status: $status');
-    return status.isGranted;
-  }
-
-  /// Check if microphone permission is granted
-  Future<bool> hasPermission() async {
-    final status = await Permission.microphone.status;
-    print('🎤 Current microphone permission: $status');
+    print('🎤 Microphone permission: $status');
     return status.isGranted;
   }
 
   /// Start recording
-  /// Returns true if recording started successfully
   Future<bool> startRecording() async {
     if (_isRecording) {
       print('⚠️ Already recording');
-      return false;
+      return true; // Return true since we're already recording
     }
 
     try {
-      // Check/request permission
-      if (!await hasPermission()) {
-        print('🎤 Requesting microphone permission...');
+      // Request permission
+      final hasPermission = await Permission.microphone.isGranted;
+      if (!hasPermission) {
         final granted = await requestPermission();
         if (!granted) {
-          print('❌ Microphone permission denied');
+          print('❌ Permission denied');
           return false;
         }
       }
 
-      // Create new recorder instance
+      // Create recorder
       _recorder?.dispose();
       _recorder = AudioRecorder();
 
-      // Get temp directory
+      // Setup path
       final dir = await getTemporaryDirectory();
       _currentRecordingPath =
           '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
-      print('📁 Recording path: $_currentRecordingPath');
 
-      // Start recording with AAC encoder
+      // Start recording
       await _recorder!.start(
         const RecordConfig(
           encoder: AudioEncoder.aacLc,
-          sampleRate: 44100, // Higher quality
-          bitRate: 128000, // Better bitrate
-          numChannels: 1, // Mono
+          sampleRate: 44100,
+          bitRate: 128000,
+          numChannels: 1,
         ),
         path: _currentRecordingPath!,
       );
 
       _recordingStartTime = DateTime.now();
       _isRecording = true;
-      _isRecordingController.add(true);
-
-      print('✅ Recording started');
+      print('✅ Recording started: $_currentRecordingPath');
       return true;
-    } catch (e, stack) {
-      print('❌ Error starting recording: $e');
-      print('Stack: $stack');
+    } catch (e) {
+      print('❌ Recording error: $e');
       _isRecording = false;
-      _isRecordingController.add(false);
       return false;
     }
   }
 
-  /// Stop recording and return the audio bytes with duration
-  /// Returns null if no recording was in progress or if failed
+  /// Stop recording and get bytes
   Future<({Uint8List bytes, int durationMs})?> stopRecording() async {
-    if (!_isRecording || _currentRecordingPath == null || _recorder == null) {
-      print('⚠️ No active recording to stop');
+    if (!_isRecording) {
+      print('⚠️ Not recording');
       return null;
     }
 
     try {
-      print('🛑 Stopping recording...');
-      final path = await _recorder!.stop();
+      final path = await _recorder?.stop();
       _isRecording = false;
-      _isRecordingController.add(false);
-
-      print('📁 Recorded file path: $path');
 
       if (path == null || path.isEmpty) {
-        print('❌ Recording returned null path');
+        print('❌ No recording path');
         return null;
       }
 
-      // Calculate duration
       final durationMs = _recordingStartTime != null
           ? DateTime.now().difference(_recordingStartTime!).inMilliseconds
           : 0;
-      print('⏱️ Recording duration: ${durationMs}ms');
 
-      // Read the recorded file
       final file = File(path);
       if (!await file.exists()) {
-        print('❌ Recording file does not exist: $path');
-        return null;
-      }
-
-      final fileSize = await file.length();
-      print('📦 File size: $fileSize bytes');
-
-      if (fileSize < 100) {
-        print('❌ Recording file too small');
-        await file.delete();
-        _currentRecordingPath = null;
-        _recordingStartTime = null;
+        print('❌ File not found: $path');
         return null;
       }
 
       final bytes = await file.readAsBytes();
-      print('✅ Read ${bytes.length} bytes from recording');
+      print('✅ Recording stopped: ${bytes.length} bytes, ${durationMs}ms');
 
-      // Clean up temp file
-      await file.delete();
+      // Cleanup file
+      await file.delete().catchError((_) => file);
       _currentRecordingPath = null;
       _recordingStartTime = null;
 
-      // Minimum valid recording (1 second)
-      if (durationMs < 1000) {
-        print('⚠️ Recording too short: ${durationMs}ms (min 1000ms)');
+      // Minimum 500ms
+      if (durationMs < 500 || bytes.length < 100) {
+        print('⚠️ Recording too short');
         return null;
       }
 
       return (bytes: bytes, durationMs: durationMs);
-    } catch (e, stack) {
-      print('❌ Error stopping recording: $e');
-      print('Stack: $stack');
+    } catch (e) {
+      print('❌ Stop error: $e');
       _isRecording = false;
-      _isRecordingController.add(false);
-      _currentRecordingPath = null;
-      _recordingStartTime = null;
       return null;
     }
   }
 
-  /// Cancel recording without saving
+  /// Cancel recording
   Future<void> cancelRecording() async {
     if (!_isRecording) return;
 
     try {
-      print('🚫 Cancelling recording...');
       await _recorder?.stop();
-      _isRecording = false;
-      _isRecordingController.add(false);
-
-      // Delete temp file if exists
       if (_currentRecordingPath != null) {
-        final file = File(_currentRecordingPath!);
-        if (await file.exists()) {
-          await file.delete();
-          print('🗑️ Deleted temp recording file');
-        }
+        await File(_currentRecordingPath!).delete().catchError((_) => File(''));
       }
-      _currentRecordingPath = null;
-      _recordingStartTime = null;
-    } catch (e) {
-      print('❌ Error cancelling recording: $e');
-    }
+    } catch (_) {}
+
+    _isRecording = false;
+    _currentRecordingPath = null;
+    _recordingStartTime = null;
+    print('🚫 Recording cancelled');
   }
 
   /// Play audio from bytes
   Future<void> playAudio(Uint8List bytes) async {
-    if (_isPlaying) {
-      await stopPlayback();
-    }
+    _ensurePlayer();
 
     try {
-      // Write to temp file for playback
+      // Stop any current playback
+      if (_isPlaying) {
+        await _player!.stop();
+      }
+
+      // Write to temp file
       final dir = await getTemporaryDirectory();
-      final tempPath =
+      final path =
           '${dir.path}/play_${DateTime.now().millisecondsSinceEpoch}.m4a';
-      final file = File(tempPath);
+      final file = File(path);
       await file.writeAsBytes(bytes);
-      print('▶️ Playing audio from: $tempPath (${bytes.length} bytes)');
 
       _isPlaying = true;
-      _isPlayingController.add(true);
+      print('▶️ Playing: $path');
 
-      await _player.play(DeviceFileSource(tempPath));
+      await _player!.play(DeviceFileSource(path));
 
-      // Clean up after playback completes
-      _player.onPlayerComplete.first.then((_) async {
+      // Cleanup after short delay
+      Future.delayed(const Duration(seconds: 120), () async {
         try {
           await file.delete();
         } catch (_) {}
       });
     } catch (e) {
-      print('❌ Error playing audio: $e');
+      print('❌ Play error: $e');
       _isPlaying = false;
-      _isPlayingController.add(false);
     }
   }
 
-  /// Stop current playback
+  /// Stop playback
   Future<void> stopPlayback() async {
     try {
-      await _player.stop();
+      await _player?.stop();
       _isPlaying = false;
-      _isPlayingController.add(false);
-    } catch (e) {
-      print('❌ Error stopping playback: $e');
-    }
+      print('⏹️ Stopped playback');
+    } catch (_) {}
   }
 
-  /// Dispose resources
+  /// Dispose
   void dispose() {
     _recorder?.dispose();
-    _player.dispose();
-    _isRecordingController.close();
-    _isPlayingController.close();
+    _player?.dispose();
+    _recorder = null;
+    _player = null;
   }
 }
 
-/// Riverpod provider for VoiceService
+/// Riverpod provider
 final voiceServiceProvider = Provider<VoiceService>((ref) {
   final service = VoiceService();
   ref.onDispose(() => service.dispose());
