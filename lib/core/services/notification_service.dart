@@ -13,8 +13,19 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _notificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
+  // Track initialization status
+  bool _isInitialized = false;
+  Future<void>? _initFuture;
+
   NotificationService() {
-    _init();
+    _initFuture = _init();
+  }
+
+  /// Ensure initialization is complete before showing notifications
+  Future<void> _ensureInitialized() async {
+    if (!_isInitialized && _initFuture != null) {
+      await _initFuture;
+    }
   }
 
   Future<void> _init() async {
@@ -86,6 +97,7 @@ class NotificationService {
           '🔔 Android notification permission: ${granted == true ? "granted" : "denied"}');
     }
 
+    _isInitialized = true;
     print('🔔 NotificationService initialized');
   }
 
@@ -95,6 +107,9 @@ class NotificationService {
     required String body,
     String? payload,
   }) async {
+    // Wait for initialization to complete
+    await _ensureInitialized();
+
     try {
       const AndroidNotificationDetails androidDetails =
           AndroidNotificationDetails(
