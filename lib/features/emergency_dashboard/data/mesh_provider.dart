@@ -451,11 +451,19 @@ class MeshNotifier extends StateNotifier<MeshState> {
       final newOnlinePeers = Set<String>.from(state.onlinePeers);
       newOnlinePeers.add(peerUserId);
 
+      // IMPORTANT: Sync connectedEndpoints immediately for radar display
+      // This ensures radar shows peer right after handshake, not on next status update
+      final currentEndpoints = List<String>.from(state.connectedEndpoints);
+      if (!currentEndpoints.contains(senderEndpoint)) {
+        currentEndpoints.add(senderEndpoint);
+      }
+
       state = state.copyWith(
         peerNames: newPeerNames,
         endpointToUserId: newEndpointMap,
         userIdToName: newUserIdToName,
         onlinePeers: newOnlinePeers,
+        connectedEndpoints: currentEndpoints,
       );
 
       print("🤝 Handshake received from $peerName ($peerUserId)");

@@ -109,7 +109,13 @@ class HybridAIService {
         yield "\n⚠️ Local AI error: Please connect to WiFi to use online AI mode.";
       }
     } else {
-      yield "⚠️ AI loading... Please wait 10-20 seconds for local model to initialize, or connect to WiFi.";
+      // Model not downloaded - show clear message
+      final isDownloaded = await isLocalModelDownloaded;
+      if (!isDownloaded) {
+        yield "⚠️ Offline AI Model Not Installed\\n\\nYou're offline and the AI model hasn't been downloaded.\\n\\n📥 Go to Settings → Download Offline AI Model\\n\\nOr connect to WiFi to use online AI.";
+      } else {
+        yield "⏳ Loading offline AI model... Please wait a moment.";
+      }
     }
   }
 

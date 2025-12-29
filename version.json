@@ -1,6 +1,6 @@
 {
-    "version": "1.8.5",
-    "build": 36,
-    "release_notes": "✨ v1.8.5 Release:\n- 🎨 Premium notification badge with gradient and glow.\n- 🔔 Tap notification to open chat with that peer.\n- � Fixed ToastService crash blocking notifications.\n- 🔒 Only verified handshaked peers appear on radar.",
-    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.8.5/app-release.apk"
+    "version": "1.9.0",
+    "build": 37,
+    "release_notes": "✨ v1.9.0 Major Update:\n- 📦 Optional offline AI model download - choose to download 1.5GB model or skip.\n- 🌐 Online AI works without downloading offline model.\n- 🎨 Premium notification badge styling.\n- 🔔 Tap notification to open chat.\n- ✅ All previous bug fixes included.",
+    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.9.0/app-release.apk"
 }

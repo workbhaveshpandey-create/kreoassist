@@ -97,7 +97,114 @@ class _StartupScreenState extends State<StartupScreen> {
       // Show smooth 5-second loading for better experience
       _showSmoothLoading();
     } else {
+      // Model not downloaded - ask user if they want to download
+      _showModelChoiceDialog();
+    }
+  }
+
+  /// Show dialog asking user whether to download offline AI model
+  Future<void> _showModelChoiceDialog() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // Check if user already made a choice (for returning users)
+    final previousChoice = prefs.getString('offline_model_choice');
+    if (previousChoice == 'skip') {
+      // User previously skipped, proceed to home
+      _navigateToHome();
+      return;
+    }
+
+    if (!mounted) return;
+
+    final sizeMB = LocalAIServiceImpl.MODEL_SIZE_MB;
+    final sizeDisplay = sizeMB >= 1000
+        ? "${(sizeMB / 1000).toStringAsFixed(1)} GB"
+        : "$sizeMB MB";
+
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.deepOrange.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child:
+                  const Icon(Icons.download_rounded, color: Colors.deepOrange),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Download Offline AI?',
+                style: TextStyle(color: Colors.white, fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'The offline AI model allows you to use AI features without internet connection.',
+              style: TextStyle(color: Colors.grey[400], fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.storage, color: Colors.orange, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Download Size: $sizeDisplay',
+                    style: const TextStyle(
+                        color: Colors.orange, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '• You can always download later from Settings\n• Online AI will work without this download',
+              style: TextStyle(color: Colors.grey[500], fontSize: 12),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child:
+                Text('Skip for Now', style: TextStyle(color: Colors.grey[400])),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.deepOrange),
+            child: Text('Download ($sizeDisplay)'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      // User chose to download
+      await prefs.setString('offline_model_choice', 'download');
       _startDownload();
+    } else {
+      // User chose to skip
+      await prefs.setString('offline_model_choice', 'skip');
+      _navigateToHome();
     }
   }
 
