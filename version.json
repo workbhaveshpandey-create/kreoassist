@@ -1,6 +1,6 @@
 {
-    "version": "1.7.0",
-    "build": 30,
-    "release_notes": "🐛 v1.7.0 Bug Fix Release:\n- ✅ Fixed app stuck on 'Checking system' at startup.\n- 📊 Fixed unread message counter not resetting after viewing.\n- 🎙️ Fixed duplicate voice notes in sender window.\n- 📝 Unread badge now includes both text + voice messages.",
-    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.7.0/app-release.apk"
+    "version": "1.8.0",
+    "build": 31,
+    "release_notes": "🐛 v1.8.0 Chat Fixes & Improvements:\n- ✅ Fixed message persistence - messages now save correctly with timestamps.\n- 📊 Fixed message ordering - messages appear chronologically.\n- 🔄 Fixed duplicate messages appearing in chat.\n- � Added Android 13+ and iOS notification permission support.\n- 🎨 Simplified radar display with green dots + initials.",
+    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.8.0/app-release.apk"
 }
