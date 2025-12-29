@@ -1,6 +1,6 @@
 {
-    "version": "1.8.4",
-    "build": 35,
-    "release_notes": "✨ v1.8.4 UI Improvements:\n- 🎨 Premium notification badge with gradient, glow, and black border.\n- 🔔 Previous notification fixes included.\n- 🔒 Only verified handshaked peers appear on radar.",
-    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.8.4/app-release.apk"
+    "version": "1.8.5",
+    "build": 36,
+    "release_notes": "✨ v1.8.5 Release:\n- 🎨 Premium notification badge with gradient and glow.\n- 🔔 Tap notification to open chat with that peer.\n- � Fixed ToastService crash blocking notifications.\n- 🔒 Only verified handshaked peers appear on radar.",
+    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.8.5/app-release.apk"
 }
