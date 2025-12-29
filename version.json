@@ -1,6 +1,6 @@
 {
-    "version": "1.8.3",
-    "build": 34,
-    "release_notes": "🔧 v1.8.3 Notification Hotfix:\n- ✅ Fixed ToastService crash that was blocking notifications in background.\n- ✅ Toast now uses Overlay.maybeOf() to handle background mode safely.\n- ✅ Notifications now appear correctly in notification bar.",
-    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.8.3/app-release.apk"
+    "version": "1.8.4",
+    "build": 35,
+    "release_notes": "✨ v1.8.4 UI Improvements:\n- 🎨 Premium notification badge with gradient, glow, and black border.\n- 🔔 Previous notification fixes included.\n- 🔒 Only verified handshaked peers appear on radar.",
+    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.8.4/app-release.apk"
 }
