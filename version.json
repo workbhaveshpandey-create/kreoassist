@@ -1,6 +1,6 @@
 {
-    "version": "1.8.0",
-    "build": 31,
-    "release_notes": "🐛 v1.8.0 Chat Fixes & Improvements:\n- ✅ Fixed message persistence - messages now save correctly with timestamps.\n- 📊 Fixed message ordering - messages appear chronologically.\n- 🔄 Fixed duplicate messages appearing in chat.\n- � Added Android 13+ and iOS notification permission support.\n- 🎨 Simplified radar display with green dots + initials.",
-    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.8.0/app-release.apk"
+    "version": "1.8.1",
+    "build": 32,
+    "release_notes": "� v1.8.1 Hotfix:\n- ✅ Fixed duplicate messages appearing in chat.\n- ✅ Fixed race condition between loading and real-time messages.\n- 🔔 Improved notification delivery for Android 13+.",
+    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.8.1/app-release.apk"
 }

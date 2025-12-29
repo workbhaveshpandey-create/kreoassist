@@ -36,6 +36,9 @@ class _MeshChatScreenState extends ConsumerState<MeshChatScreen> {
   final List<_ChatItem> _items = [];
   bool _isLoading = true;
 
+  // DEDUPLICATION: Track seen message IDs to prevent duplicates
+  final Set<String> _seenMessageIds = {};
+
   // Recording state
   bool _isRecording = false;
   int _recordingSeconds = 0;
@@ -47,15 +50,85 @@ class _MeshChatScreenState extends ConsumerState<MeshChatScreen> {
   @override
   void initState() {
     super.initState();
-    _loadChat();
-    // FIX: Mark existing messages as read immediately when chat opens
-    // This ensures the unread counter resets when viewing the chat
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(meshProvider.notifier).consumeMessagesForPeer(widget.peerId);
-      ref
-          .read(meshProvider.notifier)
-          .consumeVoiceMessagesForPeer(widget.peerId);
+    // FIX: Load chat FIRST, then setup listeners AFTER loading completes
+    // This prevents race condition where listeners add messages before loading finishes
+    _loadChat().then((_) {
+      if (mounted) {
+        _setupMessageListeners();
+        ref.read(meshProvider.notifier).consumeMessagesForPeer(widget.peerId);
+        ref
+            .read(meshProvider.notifier)
+            .consumeVoiceMessagesForPeer(widget.peerId);
+      }
     });
+  }
+
+  /// Setup listeners for incoming messages - called ONCE from initState
+  void _setupMessageListeners() {
+    // Listen for incoming text messages
+    ref.listenManual<List<MeshMessage>>(
+      meshProvider.select((s) => s.incomingMessages),
+      (_, next) {
+        final newMsgs = next.where((m) => m.senderId == widget.peerId).toList();
+        for (final msg in newMsgs) {
+          // Create unique ID from sender + timestamp for deduplication
+          final msgId = '${msg.senderId}_${msg.timestamp.toIso8601String()}';
+
+          // Skip if already in seenMessageIds OR already in items list
+          if (_seenMessageIds.contains(msgId)) continue;
+          if (_items.any((item) => item.id == msgId)) continue;
+
+          _seenMessageIds.add(msgId);
+
+          final item = _ChatItem(
+            id: msgId,
+            isVoice: false,
+            isMe: false,
+            text: '${widget.peerName}: ${msg.message}',
+            timestamp: msg.timestamp,
+          );
+          setState(() => _items.add(item));
+          // NOTE: Don't save here - mesh_provider already persists messages
+        }
+        if (newMsgs.isNotEmpty) {
+          ref.read(meshProvider.notifier).consumeMessagesForPeer(widget.peerId);
+          _scrollToBottom();
+        }
+      },
+    );
+
+    // Listen for incoming voice messages
+    ref.listenManual<List<VoiceMessage>>(
+      meshProvider.select((s) => s.incomingVoiceMessages),
+      (_, next) {
+        final newVoices =
+            next.where((m) => m.senderId == widget.peerId).toList();
+        for (final voice in newVoices) {
+          // Skip if already in seenMessageIds OR already in items list
+          if (_seenMessageIds.contains(voice.messageId)) continue;
+          if (_items.any((item) => item.id == voice.messageId)) continue;
+
+          _seenMessageIds.add(voice.messageId);
+
+          final item = _ChatItem(
+            id: voice.messageId,
+            isVoice: true,
+            isMe: false,
+            durationMs: voice.durationMs,
+            audioBytes: voice.audioBytes,
+            timestamp: voice.timestamp,
+          );
+          setState(() => _items.add(item));
+          // NOTE: Don't save here - mesh_provider already persists voice messages
+        }
+        if (newVoices.isNotEmpty) {
+          ref
+              .read(meshProvider.notifier)
+              .consumeVoiceMessagesForPeer(widget.peerId);
+          _scrollToBottom();
+        }
+      },
+    );
   }
 
   @override
@@ -79,16 +152,35 @@ class _MeshChatScreenState extends ConsumerState<MeshChatScreen> {
       final voiceKey = 'chat_voice_${widget.peerId}';
       final voiceJson = prefs.getStringList(voiceKey) ?? [];
 
-      // Parse text messages
-      for (final text in texts) {
-        final isMe = text.startsWith('Me:');
-        _items.add(_ChatItem(
-          id: _uuid.v4(),
-          isVoice: false,
-          isMe: isMe,
-          text: text,
-          timestamp: DateTime.now(),
-        ));
+      // Parse text messages - support both JSON (new) and plain text (legacy)
+      for (final entry in texts) {
+        try {
+          // Try JSON format first (new format with timestamps)
+          final data = jsonDecode(entry) as Map<String, dynamic>;
+          final msgId = data['id'] as String;
+          // Track for deduplication
+          _seenMessageIds.add(msgId);
+          _items.add(_ChatItem(
+            id: msgId,
+            isVoice: false,
+            isMe: data['isMe'] as bool,
+            text: data['text'] as String,
+            timestamp: DateTime.parse(data['timestamp'] as String),
+          ));
+        } catch (_) {
+          // Legacy plain text format fallback
+          final isMe = entry.startsWith('Me:');
+          final legacyId = _uuid.v4();
+          _seenMessageIds.add(legacyId);
+          _items.add(_ChatItem(
+            id: legacyId,
+            isVoice: false,
+            isMe: isMe,
+            text: entry,
+            timestamp: DateTime.now()
+                .subtract(Duration(minutes: texts.indexOf(entry))),
+          ));
+        }
       }
 
       // Parse and load voice messages
@@ -96,11 +188,14 @@ class _MeshChatScreenState extends ConsumerState<MeshChatScreen> {
       for (final json in voiceJson) {
         try {
           final data = jsonDecode(json) as Map<String, dynamic>;
-          final file = File('${voiceDir.path}/${data['id']}.m4a');
+          final msgId = data['id'] as String;
+          // Track for deduplication
+          _seenMessageIds.add(msgId);
+          final file = File('${voiceDir.path}/$msgId.m4a');
           if (await file.exists()) {
             final bytes = await file.readAsBytes();
             _items.add(_ChatItem(
-              id: data['id'] as String,
+              id: msgId,
               isVoice: true,
               isMe: data['isMe'] as bool,
               durationMs: data['durationMs'] as int,
@@ -133,13 +228,29 @@ class _MeshChatScreenState extends ConsumerState<MeshChatScreen> {
     return voiceDir;
   }
 
-  /// Save a text message
-  Future<void> _saveTextMessage(String text) async {
+  /// Save a text message with JSON format (includes timestamp for proper ordering)
+  Future<void> _saveTextMessage({
+    required String id,
+    required String text,
+    required bool isMe,
+    required DateTime timestamp,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     final key = 'chat_text_${widget.peerId}';
     final list = prefs.getStringList(key) ?? [];
-    list.add(text);
+    list.add(jsonEncode({
+      'id': id,
+      'text': text,
+      'isMe': isMe,
+      'timestamp': timestamp.toIso8601String(),
+    }));
     await prefs.setStringList(key, list);
+
+    // Ensure this peer appears in the Chat List
+    final mainKey = 'mesh_chat_${widget.peerId}';
+    if (!prefs.containsKey(mainKey)) {
+      await prefs.setStringList(mainKey, []);
+    }
   }
 
   /// Save a voice message
@@ -192,16 +303,25 @@ class _MeshChatScreenState extends ConsumerState<MeshChatScreen> {
 
     _controller.clear();
 
+    final msgId = _uuid.v4();
+    final timestamp = DateTime.now();
     final item = _ChatItem(
-      id: _uuid.v4(),
+      id: msgId,
       isVoice: false,
       isMe: true,
       text: 'Me: $text',
-      timestamp: DateTime.now(),
+      timestamp: timestamp,
     );
 
+    // Track for deduplication
+    _seenMessageIds.add(msgId);
     setState(() => _items.add(item));
-    await _saveTextMessage(item.text!);
+    await _saveTextMessage(
+      id: msgId,
+      text: item.text!,
+      isMe: true,
+      timestamp: timestamp,
+    );
 
     ref.read(meshProvider.notifier).sendMessage(widget.peerId, text);
     _scrollToBottom();
@@ -339,58 +459,8 @@ class _MeshChatScreenState extends ConsumerState<MeshChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Listen for incoming text messages
-    ref.listen<List<MeshMessage>>(
-      meshProvider.select((s) => s.incomingMessages),
-      (_, next) {
-        final newMsgs = next.where((m) => m.senderId == widget.peerId).toList();
-        for (final msg in newMsgs) {
-          final item = _ChatItem(
-            id: _uuid.v4(),
-            isVoice: false,
-            isMe: false,
-            text: '${widget.peerName}: ${msg.message}',
-            timestamp: DateTime.now(),
-          );
-          setState(() => _items.add(item));
-          _saveTextMessage(item.text!);
-        }
-        if (newMsgs.isNotEmpty) {
-          ref.read(meshProvider.notifier).consumeMessagesForPeer(widget.peerId);
-          _scrollToBottom();
-        }
-      },
-    );
-
-    // Listen for incoming voice messages
-    ref.listen<List<VoiceMessage>>(
-      meshProvider.select((s) => s.incomingVoiceMessages),
-      (_, next) {
-        final newVoices =
-            next.where((m) => m.senderId == widget.peerId).toList();
-        for (final voice in newVoices) {
-          // FIX: Skip if we already have this message (prevent duplicates)
-          if (_items.any((item) => item.id == voice.messageId)) continue;
-
-          final item = _ChatItem(
-            id: voice.messageId,
-            isVoice: true,
-            isMe: false,
-            durationMs: voice.durationMs,
-            audioBytes: voice.audioBytes,
-            timestamp: DateTime.now(),
-          );
-          setState(() => _items.add(item));
-          _saveVoiceMessage(item);
-        }
-        if (newVoices.isNotEmpty) {
-          ref
-              .read(meshProvider.notifier)
-              .consumeVoiceMessagesForPeer(widget.peerId);
-          _scrollToBottom();
-        }
-      },
-    );
+    // NOTE: Listeners are now set up in _setupMessageListeners() from initState
+    // This prevents duplicate listeners on every widget rebuild
 
     return Scaffold(
       backgroundColor: const Color(0xFF121212),

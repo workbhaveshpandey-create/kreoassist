@@ -743,9 +743,16 @@ class MeshNotifier extends StateNotifier<MeshState> {
       final key = 'chat_text_${msg.senderId}';
       final list = prefs.getStringList(key) ?? [];
 
-      // Format for ChatScreen compatibility
-      final formatted = "${msg.senderName}: ${msg.message}";
-      list.add(formatted);
+      // Create unique message ID for deduplication
+      final msgId = '${msg.senderId}_${msg.timestamp.toIso8601String()}';
+
+      // Store as JSON with timestamp for proper ordering
+      list.add(jsonEncode({
+        'id': msgId,
+        'text': '${msg.senderName}: ${msg.message}',
+        'isMe': false,
+        'timestamp': msg.timestamp.toIso8601String(),
+      }));
       await prefs.setStringList(key, list);
 
       // Ensure visible in Chat List

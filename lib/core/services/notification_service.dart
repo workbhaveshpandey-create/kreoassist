@@ -21,9 +21,13 @@ class NotificationService {
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    // iOS/macOS settings can be added here if needed
+    // iOS/macOS settings with permission request
     const DarwinInitializationSettings initializationSettingsDarwin =
-        DarwinInitializationSettings();
+        DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
 
     const InitializationSettings initializationSettings =
         InitializationSettings(
@@ -71,6 +75,18 @@ class NotificationService {
         }
       },
     );
+
+    // Request Android 13+ notification permission
+    final androidImpl =
+        _notificationsPlugin.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+    if (androidImpl != null) {
+      final granted = await androidImpl.requestNotificationsPermission();
+      print(
+          '🔔 Android notification permission: ${granted == true ? "granted" : "denied"}');
+    }
+
+    print('🔔 NotificationService initialized');
   }
 
   Future<void> showNotification({
@@ -79,26 +95,41 @@ class NotificationService {
     required String body,
     String? payload,
   }) async {
-    const AndroidNotificationDetails androidDetails =
-        AndroidNotificationDetails(
-      'mesh_channel',
-      'Mesh Network Alerts',
-      channelDescription: 'Notifications for Mesh network connections and SOS',
-      importance: Importance.max,
-      priority: Priority.high,
-      icon: '@mipmap/ic_launcher',
-    );
+    try {
+      const AndroidNotificationDetails androidDetails =
+          AndroidNotificationDetails(
+        'mesh_channel',
+        'Mesh Network Alerts',
+        channelDescription:
+            'Notifications for Mesh network connections and SOS',
+        importance: Importance.max,
+        priority: Priority.high,
+        icon: '@mipmap/ic_launcher',
+      );
 
-    const NotificationDetails platformDetails =
-        NotificationDetails(android: androidDetails);
+      const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
 
-    await _notificationsPlugin.show(
-      id,
-      title,
-      body,
-      platformDetails,
-      payload: payload,
-    );
+      const NotificationDetails platformDetails = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+        macOS: iosDetails,
+      );
+
+      await _notificationsPlugin.show(
+        id,
+        title,
+        body,
+        platformDetails,
+        payload: payload,
+      );
+      print('🔔 Notification shown: $title');
+    } catch (e) {
+      print('❌ Notification error: $e');
+    }
   }
 
   // --- Static Medical Notification Logic ---
