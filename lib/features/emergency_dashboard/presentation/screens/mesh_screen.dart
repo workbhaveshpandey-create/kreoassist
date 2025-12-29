@@ -47,6 +47,10 @@ class _MeshScreenState extends ConsumerState<MeshScreen>
       final notifier = ref.read(meshProvider.notifier);
       bool started = false;
 
+      // IMPORTANT: Refresh state to sync with mesh service
+      // This ensures peers show up even if they connected while screen was closed
+      notifier.refreshState();
+
       if (!state.isAdvertising) {
         notifier.startAdvertising(widget.username, widget.userId);
         started = true;

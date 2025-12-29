@@ -236,6 +236,19 @@ class MeshNotifier extends StateNotifier<MeshState> {
     }
   }
 
+  /// Refresh state from underlying mesh service - call when screen opens
+  void refreshState() {
+    // Sync connectedEndpoints from mesh service
+    final currentEndpoints = _meshService.connectedEndpoints;
+
+    // Ensure all connected endpoints are in state
+    state = state.copyWith(
+      connectedEndpoints: currentEndpoints,
+    );
+
+    print('🔄 State refreshed: ${currentEndpoints.length} connected endpoints');
+  }
+
   /// Persist a peer's name to SharedPreferences
   Future<void> _persistPeerName(String userId, String name) async {
     if (name.isEmpty || name == 'Unknown') return;
