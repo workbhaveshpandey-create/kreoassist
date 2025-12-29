@@ -1,6 +1,6 @@
 {
-    "version": "1.8.2",
-    "build": 33,
-    "release_notes": "🔧 v1.8.2 Notification Fix:\n- ✅ Fixed notifications not appearing in notification bar.\n- ✅ NotificationService now waits for plugin initialization before showing.\n- ✅ Previous fixes for duplicate messages still included.",
-    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.8.2/app-release.apk"
+    "version": "1.8.3",
+    "build": 34,
+    "release_notes": "🔧 v1.8.3 Notification Hotfix:\n- ✅ Fixed ToastService crash that was blocking notifications in background.\n- ✅ Toast now uses Overlay.maybeOf() to handle background mode safely.\n- ✅ Notifications now appear correctly in notification bar.",
+    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.8.3/app-release.apk"
 }

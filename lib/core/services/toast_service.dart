@@ -25,43 +25,52 @@ class ToastService {
   }
 
   static void _showToast(String message, Color color, IconData icon) {
-    final context = navigatorKey.currentContext;
-    if (context == null) return;
+    try {
+      final context = navigatorKey.currentContext;
+      if (context == null) return;
 
-    // Remove existing if any
-    _overlayEntry?.remove();
-    _overlayEntry = null;
+      // Use maybeOf to avoid throwing when overlay not available
+      final overlay = Overlay.maybeOf(context);
+      if (overlay == null) return; // App is in background, skip toast
 
-    final entry = OverlayEntry(
-      builder: (context) => Positioned(
-        top: MediaQuery.of(context).padding.top + 10,
-        left: 16,
-        right: 16,
-        child: Material(
-          color: Colors.transparent,
-          child: _ToastWidget(
-            message: message,
-            color: color,
-            icon: icon,
-            onDismiss: () {
-              _overlayEntry?.remove();
-              _overlayEntry = null;
-            },
+      // Remove existing if any
+      _overlayEntry?.remove();
+      _overlayEntry = null;
+
+      final entry = OverlayEntry(
+        builder: (context) => Positioned(
+          top: MediaQuery.of(context).padding.top + 10,
+          left: 16,
+          right: 16,
+          child: Material(
+            color: Colors.transparent,
+            child: _ToastWidget(
+              message: message,
+              color: color,
+              icon: icon,
+              onDismiss: () {
+                _overlayEntry?.remove();
+                _overlayEntry = null;
+              },
+            ),
           ),
         ),
-      ),
-    );
+      );
 
-    Overlay.of(context).insert(entry);
-    _overlayEntry = entry;
+      overlay.insert(entry);
+      _overlayEntry = entry;
 
-    // Auto dismiss
-    Future.delayed(const Duration(seconds: 4), () {
-      if (_overlayEntry == entry) {
-        _overlayEntry?.remove();
-        _overlayEntry = null;
-      }
-    });
+      // Auto dismiss
+      Future.delayed(const Duration(seconds: 4), () {
+        if (_overlayEntry == entry) {
+          _overlayEntry?.remove();
+          _overlayEntry = null;
+        }
+      });
+    } catch (e) {
+      // Silently fail - toast is non-critical
+      print('Toast error (non-critical): $e');
+    }
   }
 }
 
