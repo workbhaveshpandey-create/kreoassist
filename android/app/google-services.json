@@ -1,0 +1,29 @@
+{
+    "project_info": {
+        "project_number": "13114004380",
+        "project_id": "kreoassist",
+        "storage_bucket": "kreoassist.firebasestorage.app"
+    },
+    "client": [
+        {
+            "client_info": {
+                "mobilesdk_app_id": "1:13114004380:android:227d92eea167717af16e59",
+                "android_client_info": {
+                    "package_name": "com.example.kreoassist"
+                }
+            },
+            "oauth_client": [],
+            "api_key": [
+                {
+                    "current_key": "AIzaSyA4bGMoPIjSbEkvlp6X_lOYklYhoa2UshI"
+                }
+            ],
+            "services": {
+                "appinvite_service": {
+                    "other_platform_oauth_client": []
+                }
+            }
+        }
+    ],
+    "configuration_version": "1"
+}

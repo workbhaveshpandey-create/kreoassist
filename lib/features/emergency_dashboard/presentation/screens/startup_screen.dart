@@ -109,8 +109,8 @@ class _StartupScreenState extends State<StartupScreen> {
     // Check if user already made a choice (for returning users)
     final previousChoice = prefs.getString('offline_model_choice');
     if (previousChoice == 'skip') {
-      // User previously skipped, proceed to home
-      _navigateToHome();
+      // User previously skipped, but still show smooth loading for consistent experience
+      _showSmoothLoading();
       return;
     }
 
@@ -204,7 +204,7 @@ class _StartupScreenState extends State<StartupScreen> {
     } else {
       // User chose to skip
       await prefs.setString('offline_model_choice', 'skip');
-      _navigateToHome();
+      _showSmoothLoading();
     }
   }
 
@@ -214,21 +214,34 @@ class _StartupScreenState extends State<StartupScreen> {
       _status = "Hi $_username! Getting everything ready...";
     });
 
-    // Animate progress from 0 to 1 over 5 seconds
-    const duration = 5;
-    const interval = 50; // Update every 50ms
+    // Animate progress from 0 to 1 over 3 seconds (faster but complete)
+    const duration = 3;
+    const interval = 30; // Update every 30ms for smoothness
     const steps = (duration * 1000) ~/ interval;
     int currentStep = 0;
 
     Future.doWhile(() async {
       await Future.delayed(const Duration(milliseconds: interval));
       currentStep++;
+
       if (mounted) {
         setState(() {
-          _progress = currentStep / steps;
+          _progress = (currentStep / steps).clamp(0.0, 1.0);
         });
       }
+
       if (currentStep >= steps) {
+        // Ensure visual 100%
+        if (mounted) {
+          setState(() {
+            _progress = 1.0;
+            _status = "Welcome, $_username!";
+          });
+        }
+
+        // Wait for user to see 100%
+        await Future.delayed(const Duration(milliseconds: 500));
+
         _navigateToHome();
         return false;
       }

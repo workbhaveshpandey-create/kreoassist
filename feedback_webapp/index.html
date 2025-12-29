@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KreoAssist Feedback Admin</title>
+    <link rel="stylesheet" href="style.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <div class="logo">
+                <i class="fa-solid fa-layer-group"></i>
+                <h1>KreoAssist <span class="badge">Admin</span></h1>
+            </div>
+            <div class="user-profile">
+                <span>Admin User</span>
+                <div class="avatar">A</div>
+            </div>
+        </header>
+
+        <main>
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="icon" style="background: rgba(255, 171, 64, 0.2); color: #FFAB40;">
+                        <i class="fa-solid fa-star"></i>
+                    </div>
+                    <div class="info">
+                        <h3>Avg Rating</h3>
+                        <p id="avg-rating">--</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon" style="background: rgba(0, 188, 212, 0.2); color: #00BCD4;">
+                        <i class="fa-solid fa-comments"></i>
+                    </div>
+                    <div class="info">
+                        <h3>Total Feedback</h3>
+                        <p id="total-feedback">--</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon" style="background: rgba(76, 175, 80, 0.2); color: #4CAF50;">
+                        <i class="fa-solid fa-bug"></i>
+                    </div>
+                    <div class="info">
+                        <h3>Bug Reports</h3>
+                        <p id="bug-count">--</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-header">
+                <h2>Recent Feedback</h2>
+                <div class="filters">
+                    <button class="active">All</button>
+                    <button>Bugs</button>
+                    <button>Features</button>
+                </div>
+            </div>
+
+            <div class="feedback-grid" id="feedback-grid">
+                <!-- Feedback Cards will be injected here -->
+                <div class="loading-state">
+                    <i class="fa-solid fa-circle-notch fa-spin"></i>
+                    <p>Loading feedback...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Login Overlay -->
+    <div id="login-overlay" class="login-overlay">
+        <div class="login-card">
+            <div class="logo">
+                <i class="fa-solid fa-layer-group"></i>
+                <h1>KreoAssist</h1>
+            </div>
+            <p>Admin Access Only</p>
+            <button id="login-btn" class="google-btn">
+                <i class="fa-brands fa-google"></i> Sign in with Google
+            </button>
+            <p id="auth-error" class="error-msg"></p>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>
