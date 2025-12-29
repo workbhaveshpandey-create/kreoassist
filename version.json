@@ -1,6 +1,6 @@
 {
-    "version": "1.9.1",
-    "build": 38,
-    "release_notes": "✨ v1.9.1 Release:\n- 📦 Optional offline AI model download.\n- 🔄 Fixed radar sync - peers appear immediately.\n- 🔄 Fixed radar not showing peers when screen opens.\n- 🎨 Premium notification badge.\n- 🔔 Tap notification to open chat.",
-    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.9.1/app-release.apk"
+    "version": "1.9.2",
+    "build": 39,
+    "release_notes": "✨ v1.9.2 Release:\n- 💬 Fixed Mesh Network user count (removed ghosts).\n- 🚀 Smoother Feedback animations & keyboard handling.\n- 🔔 Fixed Feedback confirmation toast.\n- ⚡ Improved performance.",
+    "download_url": "https://github.com/workbhaveshpandey-create/kreoassist/releases/download/v1.9.2/app-release.apk"
 }

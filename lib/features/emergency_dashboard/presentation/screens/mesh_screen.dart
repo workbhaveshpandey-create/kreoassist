@@ -320,7 +320,7 @@ class _MeshScreenState extends ConsumerState<MeshScreen>
                               const Icon(Icons.people,
                                   color: Colors.white70, size: 16),
                               const SizedBox(width: 6),
-                              Text("${connectedEndpoints.length}",
+                              Text("${meshState.onlinePeers.length}",
                                   style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold)),

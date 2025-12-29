@@ -11,6 +11,7 @@ import '../../../../core/config/app_config.dart';
 import '../../../../core/services/update_service.dart';
 import '../../../../core/services/toast_service.dart';
 import '../../../ai_assistant/data/local_ai_service_impl.dart';
+import 'feedback_sheet.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   final String username;
@@ -87,6 +88,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.feedback_outlined),
+            tooltip: 'Feedback',
+            onPressed: _showFeedbackPrompt,
+          ),
+          IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () => _showSettings(context),
           ),
@@ -136,6 +142,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ],
       ),
     );
+  }
+
+  void _showFeedbackPrompt() async {
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (context) => const FeedbackSheet(),
+    );
+
+    if (result == true && mounted) {
+      ToastService.showSuccess("Feedback received. Thank you!",
+          context: context);
+    }
   }
 
   void _showSettings(BuildContext context) {
@@ -442,6 +462,37 @@ class _SettingsSheetState extends ConsumerState<SettingsSheet> {
                             style: TextStyle(color: Colors.deepOrange)),
                       ),
           ).animate().fadeIn(delay: 375.ms),
+          const SizedBox(height: 20),
+          const Text("FEEDBACK & SUPPORT").animate().fadeIn(delay: 400.ms),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.amber.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.reviews_outlined,
+                  color: Colors.amber, size: 24),
+            ),
+            title: const Text("Send Feedback",
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: const Text("Rate us or report a bug"),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () async {
+              Navigator.pop(context); // Close Settings
+              final result = await showModalBottomSheet<bool>(
+                context: context,
+                isScrollControlled: true,
+                useSafeArea: true, // Respect status bar for full screen
+                builder: (context) => const FeedbackSheet(),
+              );
+
+              if (result == true && mounted) {
+                ToastService.showSuccess("Feedback received. Thank you!");
+              }
+            },
+          ).animate().fadeIn(delay: 425.ms),
           const SizedBox(height: 20),
           const Text("APP UPDATES").animate().fadeIn(delay: 400.ms),
           ListTile(

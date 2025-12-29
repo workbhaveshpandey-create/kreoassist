@@ -5,32 +5,35 @@ class ToastService {
   static OverlayEntry? _overlayEntry;
 
   /// Show a success toast (Green)
-  static void showSuccess(String message) {
-    _showToast(message, const Color(0xFF00C853), Icons.check_circle);
+  static void showSuccess(String message, {BuildContext? context}) {
+    _showToast(message, const Color(0xFF00C853), Icons.check_circle,
+        context: context);
   }
 
   /// Show an error toast (Red)
-  static void showError(String message) {
-    _showToast(message, const Color(0xFFFF5252), Icons.error);
+  static void showError(String message, {BuildContext? context}) {
+    _showToast(message, const Color(0xFFFF5252), Icons.error, context: context);
   }
 
   /// Show an info toast (Blue)
-  static void showInfo(String message) {
-    _showToast(message, const Color(0xFF2196F3), Icons.info);
+  static void showInfo(String message, {BuildContext? context}) {
+    _showToast(message, const Color(0xFF2196F3), Icons.info, context: context);
   }
 
   /// Show a warning toast (Orange)
-  static void showWarning(String message) {
-    _showToast(message, const Color(0xFFFF9800), Icons.warning);
+  static void showWarning(String message, {BuildContext? context}) {
+    _showToast(message, const Color(0xFFFF9800), Icons.warning,
+        context: context);
   }
 
-  static void _showToast(String message, Color color, IconData icon) {
+  static void _showToast(String message, Color color, IconData icon,
+      {BuildContext? context}) {
     try {
-      final context = navigatorKey.currentContext;
-      if (context == null) return;
+      final ctx = context ?? navigatorKey.currentContext;
+      if (ctx == null) return;
 
       // Use maybeOf to avoid throwing when overlay not available
-      final overlay = Overlay.maybeOf(context);
+      final overlay = Overlay.maybeOf(ctx);
       if (overlay == null) return; // App is in background, skip toast
 
       // Remove existing if any

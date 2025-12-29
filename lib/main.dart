@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
+import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:workmanager/workmanager.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 import 'core/services/update_service.dart';
 import 'features/emergency_dashboard/presentation/screens/startup_screen.dart';
@@ -21,6 +23,7 @@ void callbackDispatcher() {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
 
   // Initialize Background Worker
   Workmanager().initialize(
